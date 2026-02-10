@@ -74,15 +74,11 @@ def lunar_to_solar(year: int, month: int, day: int, is_leap_month: bool = False)
         offset += get_lunar_year_days(i)
     
     leap_month = get_leap_month(year)
-    is_leap = False
     
     for i in range(1, month):
-        if leap_month > 0 and i == leap_month and not is_leap:
+        offset += get_lunar_month_days(year, i)
+        if leap_month > 0 and i == leap_month:
             offset += get_leap_month_days(year)
-            is_leap = True
-            i -= 1
-        else:
-            offset += get_lunar_month_days(year, i)
     
     if is_leap_month and leap_month == month:
         offset += get_lunar_month_days(year, month)
@@ -117,18 +113,21 @@ def solar_to_lunar(year: int, month: int, day: int) -> Dict:
     is_leap_month = False
     
     for i in range(1, 13):
-        if leap_month > 0 and i == leap_month + 1 and not is_leap_month:
-            month_days = get_leap_month_days(lunar_year)
-            is_leap_month = True
-            i -= 1
-        else:
-            month_days = get_lunar_month_days(lunar_year, i)
-            is_leap_month = False
+        month_days = get_lunar_month_days(lunar_year, i)
         
         if remaining_days < month_days:
             lunar_month = i
             break
         remaining_days -= month_days
+        
+        # Check if there's a leap month after this month
+        if leap_month > 0 and i == leap_month:
+            leap_days = get_leap_month_days(lunar_year)
+            if remaining_days < leap_days:
+                lunar_month = i
+                is_leap_month = True
+                break
+            remaining_days -= leap_days
     
     lunar_day = remaining_days + 1
     
@@ -140,7 +139,15 @@ def solar_to_lunar(year: int, month: int, day: int) -> Dict:
     }
 
 def get_solar_term_date(year: int, term_index: int) -> datetime:
-    """특정 절기의 날짜 계산"""
+    """특정 절기의 날짜 계산
+    
+    Args:
+        year: 계산할 연도
+        term_index: 절기 인덱스 (0-23, 24절기를 나타냄)
+    
+    Returns:
+        절기가 발생하는 날짜
+    """
     century = year // 100
     year_in_century = year % 100
     
@@ -233,7 +240,16 @@ def get_day_pillar(year: int, month: int, day: int) -> Tuple[str, str, str, str]
     )
 
 def get_hour_pillar(day_stem_ko: str, hour: int, minute: int) -> Tuple[str, str, str, str]:
-    """시주 계산"""
+    """시주 계산
+    
+    Args:
+        day_stem_ko: 일주 천간의 한글 이름
+        hour: 시간 (0-23)
+        minute: 분 (0-59)
+    
+    Returns:
+        (천간 한글, 지지 한글, 천간 한자, 지지 한자) 튜플
+    """
     adjusted_hour = 0 if hour == 23 else hour
     total_minutes = adjusted_hour * 60 + minute
     shichen = ((total_minutes + 60) // 120) % 12
@@ -250,7 +266,15 @@ def get_hour_pillar(day_stem_ko: str, hour: int, minute: int) -> Tuple[str, str,
     )
 
 def get_element(stem_or_branch: str, is_stem: bool = True) -> str:
-    """오행 반환"""
+    """오행 반환
+    
+    Args:
+        stem_or_branch: 천간 또는 지지의 한글 이름
+        is_stem: True면 천간, False면 지지
+    
+    Returns:
+        오행 이름 (목, 화, 토, 금, 수)
+    """
     if is_stem:
         elements = {'갑': '목', '을': '목', '병': '화', '정': '화', '무': '토', 
                    '기': '토', '경': '금', '신': '금', '임': '수', '계': '수'}
@@ -260,7 +284,15 @@ def get_element(stem_or_branch: str, is_stem: bool = True) -> str:
     return elements.get(stem_or_branch, '')
 
 def get_yin_yang(stem_or_branch: str, is_stem: bool = True) -> str:
-    """음양 반환"""
+    """음양 반환
+    
+    Args:
+        stem_or_branch: 천간 또는 지지의 한글 이름
+        is_stem: True면 천간, False면 지지
+    
+    Returns:
+        음양 분류 ('양' 또는 '음')
+    """
     if is_stem:
         idx = HEAVENLY_STEMS_KO.index(stem_or_branch)
     else:
