@@ -657,20 +657,62 @@
             // Determine which solar term month we're in
             const currentDate = new Date(year, month - 1, day);
             
-            // Month branches start from 寅(Tiger) in Lichun month
-            let monthBranchIndex = 2; // Start with 寅(Tiger)
+            // Find the current month branch based on solar terms
+            // Month branches: 인(2월/입춘~경칩), 묘(3월/경칩~청명), 진(4월/청명~입하), ...
+            let monthBranchIndex = 2; // Default to 寅(Tiger) for Lichun month
             
-            for (let i = 0; i < 24; i += 2) {
-                const termDate = getSolarTermDate(year, i);
-                if (currentDate >= termDate) {
-                    monthBranchIndex = 2 + Math.floor(i / 2);
+            // Check each solar term (every 2 terms = 1 month)
+            // 0:입춘, 2:경칩, 4:청명, 6:입하, 8:망종, 10:소서, 12:입추, 14:백로, 16:한로, 18:입동, 20:대설, 22:소한
+            const solarTermMonthBranches = [
+                { term: 0, branch: 2 },   // 입춘 -> 인월(寅)
+                { term: 2, branch: 3 },   // 경칩 -> 묘월(卯)
+                { term: 4, branch: 4 },   // 청명 -> 진월(辰)
+                { term: 6, branch: 5 },   // 입하 -> 사월(巳)
+                { term: 8, branch: 6 },   // 망종 -> 오월(午)
+                { term: 10, branch: 7 },  // 소서 -> 미월(未)
+                { term: 12, branch: 8 },  // 입추 -> 신월(申)
+                { term: 14, branch: 9 },  // 백로 -> 유월(酉)
+                { term: 16, branch: 10 }, // 한로 -> 술월(戌)
+                { term: 18, branch: 11 }, // 입동 -> 해월(亥)
+                { term: 20, branch: 0 },  // 대설 -> 자월(子)
+                { term: 22, branch: 1 }   // 소한 -> 축월(丑)
+            ];
+            
+            // Check against Lichun of current and next year
+            const lichunThisYear = getSolarTermDate(year, 0);
+            const lichunNextYear = getSolarTermDate(year + 1, 0);
+            
+            // If before this year's Lichun, we're in the previous year's last month
+            if (currentDate < lichunThisYear) {
+                monthBranchIndex = 1; // 축월(丑) - Dec-Jan period
+            } else {
+                // Find which solar term period we're in
+                for (let i = 0; i < solarTermMonthBranches.length; i++) {
+                    const { term, branch } = solarTermMonthBranches[i];
+                    const termDate = getSolarTermDate(year, term);
+                    const nextTermIdx = (i + 1 < solarTermMonthBranches.length) ? 
+                        solarTermMonthBranches[i + 1].term : 0;
+                    const nextTermDate = (i + 1 < solarTermMonthBranches.length) ?
+                        getSolarTermDate(year, nextTermIdx) : lichunNextYear;
+                    
+                    if (currentDate >= termDate && currentDate < nextTermDate) {
+                        monthBranchIndex = branch;
+                        break;
+                    }
                 }
             }
-            monthBranchIndex = monthBranchIndex % 12;
 
-            // Month stem calculation based on year stem
-            // Formula: month_stem = (year_stem * 2 + month_branch) % 10
-            const monthStemIndex = (yearStemIndex * 2 + monthBranchIndex) % 10;
+            // Month stem calculation based on year stem (월두법/year stem method)
+            // 갑·기년(0,5): 인월=병(2), 을·경년(1,6): 인월=무(4), 병·신년(2,7): 인월=경(6), 
+            // 정·임년(3,8): 인월=임(8), 무·계년(4,9): 인월=갑(0)
+            const monthStemBase = [2, 4, 6, 8, 0]; // 인월의 천간 by year stem % 5
+            const baseIndex = yearStemIndex % 5; // Map year stem to one of 5 groups
+            const inMonthStem = monthStemBase[baseIndex]; // 인월(寅月)의 천간
+            
+            // Calculate month stem from 인월 base
+            // 인=2, so offset from 인월 to current month
+            const monthOffset = (monthBranchIndex - 2 + 12) % 12;
+            const monthStemIndex = (inMonthStem + monthOffset) % 10;
 
             return {
                 stem: HEAVENLY_STEMS[monthStemIndex],
@@ -681,13 +723,13 @@
         // Calculate day pillar
         function getDayPillar(year, month, day) {
             // Use Julian Day Number method
-            // Reference day: 1900-01-01 = Day 16 in 60-day cycle (己卯)
+            // Reference day: 1900-01-01 = 갑술 (甲戌) in 60-day cycle
             const baseDate = new Date(1900, 0, 1);
             const currentDate = new Date(year, month - 1, day);
             const daysDiff = Math.floor((currentDate - baseDate) / 86400000);
             
-            // 1900-01-01 is 己卯 which is index 15 (己=5, 卯=3 -> (5*12+3)/gcd = 15)
-            const offset = (daysDiff + 15) % 60;
+            // 1900-01-01 is 갑술(甲戌) which is index 10 in 60 Jiazi cycle
+            const offset = (daysDiff + 10) % 60;
             return getJiazi(offset);
         }
 
