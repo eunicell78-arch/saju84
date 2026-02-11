@@ -59,7 +59,7 @@ st.title("🔮 사주팔자 만세력 계산기")
 st.caption("생년월일시를 입력하면 사주팔자를 계산하고 AI가 풀이해드립니다.")
 
 
-def get_saju_interpretation(saju_result: dict) -> str:
+def get_saju_interpretation(saju_result: dict, is_student: bool = False, grade_level: str = "") -> str:
     """ChatGPT를 이용한 사주 풀이"""
     
     # 오행 개수
@@ -140,12 +140,22 @@ def get_saju_interpretation(saju_result: dict) -> str:
 - 현재: {current['년도']}년 {current['간지']} ({current['나이']}세)
 """
     
+    # 학생 모드 구분
+    if is_student:
+        student_info = f"\n\n## 학생 정보\n- 학년: {grade_level}"
+        job_section = """### 7. 학업운 및 진로
+학업 성취도, 공부 방법, 적합한 전공 및 진로 방향을 분석해주세요. 과외나 학원 추천도 포함해주세요."""
+    else:
+        student_info = ""
+        job_section = """### 7. 직업운
+적합한 직업 분야와 업무 스타일을 분석해주세요."""
+    
     prompt = f"""
 당신은 30년 경력의 전문 사주명리학자입니다. 
 다음 사주팔자를 깊이있고 전문적으로 풀이해주세요.
 
 ## 생년월일시
-{saju_result['birth_date']}
+{saju_result['birth_date']}{student_info}
 
 ## 사주팔자
 - 연주(年柱): {saju_result['year_pillar']} ({saju_result['year_hanja']})
@@ -166,26 +176,34 @@ def get_saju_interpretation(saju_result: dict) -> str:
 ## 풀이 요청사항
 다음 항목들을 구조화된 형식으로 풀이해주세요:
 
-### 1. 사주 전체 구조 분석
-일간의 강약과 사주 구조의 특징을 분석해주세요.
+### 1. 전체 운세
+사주 전반적인 운세와 일간의 강약, 사주 구조의 특징을 분석해주세요.
 
-### 2. 십신으로 본 성격과 적성
-십신 배치를 바탕으로 성격, 재능, 적성을 설명해주세요.
+### 2. 성격 및 기질
+십신 배치를 바탕으로 성격, 재능, 기질, 성향을 설명해주세요.
 
-### 3. 오행 균형과 용신
-오행의 강약과 조화를 분석하고, 필요한 용신을 제시해주세요.
+### 3. 금전운
+재물운, 재테크 성향, 돈 관리 능력을 분석해주세요.
 
-### 4. 신살의 길흉
-주요 신살의 의미와 영향을 설명해주세요.
+### 4. 건강운
+건강 관련 주의사항과 체질, 취약 부위를 설명해주세요.
 
-### 5. 직업운과 재물운
-적합한 직업 분야와 재물 운세를 분석해주세요.
+### 5. 대인관계운
+인간관계 스타일, 대인운, 사회성을 분석해주세요.
 
-### 6. 대운과 세운
-현재 대운과 세운의 흐름을 해석해주세요.
+### 6. 연애운/결혼운
+연애 운세, 배우자운, 이성관계를 해석해주세요.
 
-### 7. 건강과 주의사항
-건강 관련 주의사항과 개선 방향을 제시해주세요.
+{job_section}
+
+### 8. 가족운
+가족과의 관계, 부모운, 자녀운을 분석해주세요.
+
+### 9. 올해의 운세
+현재 대운과 세운을 바탕으로 올해의 흐름과 주요 운세를 해석해주세요.
+
+### 10. 조언 및 개선 방향
+오행 균형을 위한 용신 제시 및 전반적인 삶의 방향과 개선점을 조언해주세요.
 
 한국어로 정중하고 이해하기 쉽게 설명해주세요. 각 섹션은 제목(###)을 포함하여 구분해주세요.
 """
@@ -198,7 +216,7 @@ def get_saju_interpretation(saju_result: dict) -> str:
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
-            max_tokens=2000
+            max_tokens=3000
         )
         
         return response.choices[0].message.content
@@ -209,6 +227,58 @@ def get_saju_interpretation(saju_result: dict) -> str:
         return "❌ API 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요."
     except Exception as e:
         return f"❌ 풀이 중 오류가 발생했습니다: {str(e)}"
+
+
+def get_followup_answer(saju_result: dict, conversation_history: list, user_question: str) -> str:
+    """사주 정보를 바탕으로 추가 질문에 답변"""
+    
+    # 오행 개수
+    element_count = get_element_count(saju_result)
+    element_str = ", ".join([f"{k}: {v}개" for k, v in element_count.items()])
+    
+    # 사주 요약 정보
+    saju_summary = f"""
+## 생년월일시
+{saju_result['birth_date']}
+
+## 사주팔자
+- 연주: {saju_result['year_pillar']} ({saju_result['year_hanja']})
+- 월주: {saju_result['month_pillar']} ({saju_result['month_hanja']})
+- 일주: {saju_result['day_pillar']} ({saju_result['day_hanja']})
+- 시주: {saju_result['hour_pillar']} ({saju_result['hour_hanja']})
+
+## 오행: {element_str}
+"""
+    
+    # 대화 히스토리 구성
+    messages = [
+        {"role": "system", "content": f"당신은 전문 사주명리학자입니다. 다음 사주 정보를 참고하여 질문에 답변해주세요.\n\n{saju_summary}"}
+    ]
+    
+    # 이전 대화 히스토리 추가
+    for item in conversation_history:
+        messages.append({"role": "user", "content": item["question"]})
+        messages.append({"role": "assistant", "content": item["answer"]})
+    
+    # 현재 질문 추가
+    messages.append({"role": "user", "content": user_question})
+    
+    try:
+        response = openai.chat.completions.create(
+            model="gpt-4",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=1500
+        )
+        
+        return response.choices[0].message.content
+    
+    except openai.AuthenticationError:
+        return "❌ OpenAI API 키가 유효하지 않습니다."
+    except openai.RateLimitError:
+        return "❌ API 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요."
+    except Exception as e:
+        return f"❌ 답변 생성 중 오류가 발생했습니다: {str(e)}"
 
 
 # 메인 UI
@@ -256,6 +326,22 @@ with col1:
         horizontal=True
     )
     
+    # 직업/학생 선택
+    occupation_type = st.selectbox(
+        "구분",
+        options=['일반', '학생'],
+        help="학생인 경우 '학생'을 선택하면 맞춤형 풀이를 받을 수 있습니다."
+    )
+    
+    # 학생 선택 시 학년 입력
+    grade_level = ""
+    if occupation_type == "학생":
+        grade_level = st.selectbox(
+            "학년",
+            options=['초등학생', '중학생', '고등학생', '대학생', '대학원생'],
+            help="현재 학년을 선택해주세요."
+        )
+    
     # datetime 객체 생성 (일단 입력된 날짜로 생성, 음력인 경우 아래에서 변환)
     year = birth_date.year
     month = birth_date.month
@@ -283,9 +369,18 @@ with col1:
         # 양력 날짜로 datetime 객체 생성
         birth_datetime = datetime(year, month, day, birth_hour, birth_minute)
         
+        # 이전 생년월일과 다르면 대화 히스토리 초기화
+        if 'birth_datetime' in st.session_state and st.session_state['birth_datetime'] != birth_datetime:
+            st.session_state['conversation_history'] = []
+        
         st.session_state['saju_calculated'] = True
         st.session_state['birth_datetime'] = birth_datetime
         st.session_state['gender'] = gender
+        st.session_state['is_student'] = (occupation_type == "학생")
+        st.session_state['grade_level'] = grade_level if occupation_type == "학생" else ""
+        # 대화 히스토리 초기화 (첫 계산 시에만)
+        if 'conversation_history' not in st.session_state:
+            st.session_state['conversation_history'] = []
 
 with col2:
     st.subheader("ℹ️ 안내사항")
@@ -521,9 +616,14 @@ if st.session_state.get('saju_calculated', False):
                 # OpenAI 클라이언트 초기화
                 openai.api_key = st.secrets["OPENAI_API_KEY"]
                 
-                interpretation = get_saju_interpretation(result)
+                # 학생 모드 정보 가져오기
+                is_student = st.session_state.get('is_student', False)
+                grade_level = st.session_state.get('grade_level', '')
+                
+                interpretation = get_saju_interpretation(result, is_student, grade_level)
                 
                 st.session_state['interpretation'] = interpretation
+                st.session_state['saju_result'] = result
         
         # 풀이 결과 표시
         if 'interpretation' in st.session_state:
@@ -563,6 +663,59 @@ AI 사주 풀이
                 mime="text/plain",
                 use_container_width=True
             )
+            
+            st.divider()
+            
+            # 추가 질문 기능
+            st.markdown("### 💬 추가 질문하기")
+            st.caption("사주와 관련하여 궁금한 점을 더 물어보세요. 이전 대화 내용이 유지됩니다.")
+            
+            # 추가 질문 입력
+            user_question = st.text_input(
+                "질문을 입력하세요",
+                key="followup_question",
+                placeholder="예: 올해 이직하기 좋은 시기는 언제인가요?"
+            )
+            
+            if st.button("📤 질문하기", use_container_width=True):
+                if user_question.strip():
+                    with st.spinner("답변을 생성하는 중..."):
+                        # OpenAI API 키 설정
+                        openai.api_key = st.secrets["OPENAI_API_KEY"]
+                        
+                        # 답변 생성
+                        answer = get_followup_answer(
+                            st.session_state['saju_result'],
+                            st.session_state['conversation_history'],
+                            user_question
+                        )
+                        
+                        # 대화 히스토리에 추가
+                        st.session_state['conversation_history'].append({
+                            'question': user_question,
+                            'answer': answer
+                        })
+                        
+                        # 답변 표시를 위해 rerun
+                        st.rerun()
+                else:
+                    st.warning("질문을 입력해주세요.")
+            
+            # 최신 답변 표시 (답변이 있을 때만)
+            if st.session_state.get('conversation_history', []):
+                latest = st.session_state['conversation_history'][-1]
+                st.markdown("#### 💡 답변")
+                st.info(f"**Q: {latest['question']}**")
+                st.markdown(latest['answer'])
+                
+                # 이전 대화 내역이 2개 이상일 때만 히스토리 표시
+                if len(st.session_state['conversation_history']) > 1:
+                    with st.expander(f"📜 이전 대화 내역 보기 ({len(st.session_state['conversation_history']) - 1}개)", expanded=False):
+                        for idx, conv in enumerate(st.session_state['conversation_history'][:-1], 1):
+                            st.markdown(f"**Q{idx}: {conv['question']}**")
+                            st.markdown(f"A{idx}: {conv['answer']}")
+                            if idx < len(st.session_state['conversation_history']) - 1:
+                                st.markdown("---")
 
 # 푸터
 st.divider()
