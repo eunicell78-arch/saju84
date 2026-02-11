@@ -225,6 +225,12 @@ def calculate_four_pillars(birth_date: datetime) -> Dict:
     # 일주
     day_stem, day_branch = get_day_pillar(birth_date)
     
+    # 일주 60갑자 인덱스 계산 (공망 등에 필요)
+    base_date = datetime(2000, 1, 1)
+    base_jiazi_index = 54  # 戊午
+    days_diff = (birth_date.date() - base_date.date()).days
+    day_pillar_index = (base_jiazi_index + days_diff) % 60
+    
     # 시주
     hour_stem, hour_branch = get_hour_pillar(birth_date, day_stem)
     
@@ -238,6 +244,16 @@ def calculate_four_pillars(birth_date: datetime) -> Dict:
     # 음양 분석
     stems_yin_yang = [STEM_YIN_YANG[s] for s in stems]
     branches_yin_yang = [BRANCH_YIN_YANG[b] for b in branches]
+    
+    # 한자만 추출
+    year_stem_hanja = HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(year_stem)]
+    year_branch_hanja = EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(year_branch)]
+    month_stem_hanja = HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(month_stem)]
+    month_branch_hanja = EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(month_branch)]
+    day_stem_hanja = HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(day_stem)]
+    day_branch_hanja = EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(day_branch)]
+    hour_stem_hanja = HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(hour_stem)]
+    hour_branch_hanja = EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(hour_branch)]
     
     return {
         'year_pillar': f"{year_stem}{year_branch}",
@@ -257,10 +273,20 @@ def calculate_four_pillars(birth_date: datetime) -> Dict:
         'stems_yin_yang': stems_yin_yang,
         'branches_yin_yang': branches_yin_yang,
         'birth_date': birth_date.strftime('%Y년 %m월 %d일 %H시 %M분'),
-        'year_hanja': f"{HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(year_stem)]}{EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(year_branch)]}",
-        'month_hanja': f"{HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(month_stem)]}{EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(month_branch)]}",
-        'day_hanja': f"{HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(day_stem)]}{EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(day_branch)]}",
-        'hour_hanja': f"{HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(hour_stem)]}{EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(hour_branch)]}"
+        'birth_year': year,
+        'year_hanja': f"{year_stem_hanja}{year_branch_hanja}",
+        'month_hanja': f"{month_stem_hanja}{month_branch_hanja}",
+        'day_hanja': f"{day_stem_hanja}{day_branch_hanja}",
+        'hour_hanja': f"{hour_stem_hanja}{hour_branch_hanja}",
+        'year_stem_hanja': year_stem_hanja,
+        'year_branch_hanja': year_branch_hanja,
+        'month_stem_hanja': month_stem_hanja,
+        'month_branch_hanja': month_branch_hanja,
+        'day_stem_hanja': day_stem_hanja,
+        'day_branch_hanja': day_branch_hanja,
+        'hour_stem_hanja': hour_stem_hanja,
+        'hour_branch_hanja': hour_branch_hanja,
+        'day_pillar_index': day_pillar_index
     }
 
 
