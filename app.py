@@ -31,6 +31,80 @@ def get_saju_interpretation(saju_result: dict) -> str:
     element_count = get_element_count(saju_result)
     element_str = ", ".join([f"{k}: {v}개" for k, v in element_count.items()])
     
+    # 십신 정보
+    sipsin_str = ""
+    if 'sipsin' in saju_result:
+        sipsin_str = f"""
+## 십신 분포
+- 년간: {saju_result['sipsin']['year_stem']}
+- 월간: {saju_result['sipsin']['month_stem']}
+- 일간: {saju_result['sipsin']['day_stem']}
+- 시간: {saju_result['sipsin']['hour_stem']}
+"""
+    
+    # 12운성 정보
+    unsung_str = ""
+    if 'unsung' in saju_result:
+        unsung_str = f"""
+## 12운성
+- 년지: {saju_result['unsung']['year']}
+- 월지: {saju_result['unsung']['month']}
+- 일지: {saju_result['unsung']['day']}
+- 시지: {saju_result['unsung']['hour']}
+"""
+    
+    # 신살 정보
+    sinsal_str = ""
+    if 'sinsal' in saju_result:
+        sinsal_list = []
+        if saju_result['sinsal']['cheonul']:
+            sinsal_list.append(f"천을귀인: {', '.join(saju_result['sinsal']['cheonul'])}")
+        if saju_result['sinsal']['yeokma']:
+            sinsal_list.append(f"역마살: {', '.join(saju_result['sinsal']['yeokma'])}")
+        if saju_result['sinsal']['dohwa']:
+            sinsal_list.append(f"도화살: {', '.join(saju_result['sinsal']['dohwa'])}")
+        if saju_result['sinsal']['gongmang']:
+            sinsal_list.append(f"공망: {', '.join(saju_result['sinsal']['gongmang'])}")
+        
+        if sinsal_list:
+            sinsal_str = "## 신살\n" + "\n".join([f"- {s}" for s in sinsal_list])
+    
+    # 형충회합 정보
+    hch_str = ""
+    if 'hyungchunghap' in saju_result:
+        hch = saju_result['hyungchunghap']
+        hch_list = []
+        if hch['chung']:
+            hch_list.append(f"충(沖): {', '.join(hch['chung'])}")
+        if hch['yukhap']:
+            hch_list.append(f"육합(六合): {', '.join(hch['yukhap'])}")
+        if hch['samhap']:
+            hch_list.append(f"삼합(三合): {', '.join(hch['samhap'])}")
+        if hch['hyung']:
+            hch_list.append(f"형(刑): {', '.join(hch['hyung'])}")
+        
+        if hch_list:
+            hch_str = "## 형충회합\n" + "\n".join([f"- {h}" for h in hch_list])
+    
+    # 대운 정보
+    daeun_str = ""
+    if 'daeun' in saju_result:
+        daeun_str = f"""
+## 대운
+- 방향: {saju_result['daeun']['direction']}
+- 시작: {saju_result['daeun']['start_age']}세
+- 현재 대운 (예시): {saju_result['daeun']['list'][0]['간지']} ({saju_result['daeun']['list'][0]['나이']})
+"""
+    
+    # 세운 정보
+    seun_str = ""
+    if 'seun' in saju_result:
+        current = saju_result['seun']['current']
+        seun_str = f"""
+## 세운
+- 현재: {current['년도']}년 {current['간지']} ({current['나이']}세)
+"""
+    
     prompt = f"""
 당신은 30년 경력의 전문 사주명리학자입니다. 
 다음 사주팔자를 깊이있고 전문적으로 풀이해주세요.
@@ -52,30 +126,31 @@ def get_saju_interpretation(saju_result: dict) -> str:
 ## 음양 분석
 - 천간: {', '.join(saju_result['stems_yin_yang'])}
 - 지지: {', '.join(saju_result['branches_yin_yang'])}
+{sipsin_str}{unsung_str}{sinsal_str}{hch_str}{daeun_str}{seun_str}
 
 ## 풀이 요청사항
 다음 항목들을 구조화된 형식으로 풀이해주세요:
 
-### 1. 기본 성향
-타고난 성격과 기질을 설명해주세요.
+### 1. 사주 전체 구조 분석
+일간의 강약과 사주 구조의 특징을 분석해주세요.
 
-### 2. 오행 균형
-오행의 강약과 조화를 분석해주세요. 어떤 오행이 강하고 약한지, 그것이 어떤 의미인지 설명해주세요.
+### 2. 십신으로 본 성격과 적성
+십신 배치를 바탕으로 성격, 재능, 적성을 설명해주세요.
 
-### 3. 길흉 판단
-사주의 전반적인 길흉을 평가해주세요.
+### 3. 오행 균형과 용신
+오행의 강약과 조화를 분석하고, 필요한 용신을 제시해주세요.
 
-### 4. 직업운
-이 사주에 적합한 직업 분야를 추천해주세요.
+### 4. 신살의 길흉
+주요 신살의 의미와 영향을 설명해주세요.
 
-### 5. 재물운
-재물에 관한 운세를 설명해주세요.
+### 5. 직업운과 재물운
+적합한 직업 분야와 재물 운세를 분석해주세요.
 
-### 6. 건강
-주의해야 할 건강 부분을 알려주세요.
+### 6. 대운과 세운
+현재 대운과 세운의 흐름을 해석해주세요.
 
-### 7. 조언
-인생에서 주의할 점과 조언을 해주세요.
+### 7. 건강과 주의사항
+건강 관련 주의사항과 개선 방향을 제시해주세요.
 
 한국어로 정중하고 이해하기 쉽게 설명해주세요. 각 섹션은 제목(###)을 포함하여 구분해주세요.
 """
@@ -119,12 +194,19 @@ with col1:
         value=time(12, 0)
     )
     
+    gender = st.radio(
+        "성별",
+        options=['남', '여'],
+        horizontal=True
+    )
+    
     # datetime 객체 생성
     birth_datetime = datetime.combine(birth_date, birth_time)
     
     if st.button("🔮 사주팔자 계산하기", type="primary", use_container_width=True):
         st.session_state['saju_calculated'] = True
         st.session_state['birth_datetime'] = birth_datetime
+        st.session_state['gender'] = gender
 
 with col2:
     st.subheader("ℹ️ 안내사항")
@@ -140,9 +222,10 @@ with col2:
 # 사주 계산 결과 표시
 if st.session_state.get('saju_calculated', False):
     birth_datetime = st.session_state['birth_datetime']
+    gender = st.session_state.get('gender', '남')
     
     with st.spinner("사주팔자를 계산하는 중..."):
-        result = calculate_four_pillars(birth_datetime)
+        result = calculate_four_pillars(birth_datetime, gender)
     
     st.success(f"✅ {result['birth_date']} 출생자의 사주팔자")
     
@@ -184,6 +267,137 @@ if st.session_state.get('saju_calculated', False):
     for col, (element, count) in zip(element_cols, element_count.items()):
         with col:
             st.metric(label=element, value=f"{count}개")
+    
+    # 십신 분석
+    if 'sipsin' in result:
+        st.subheader("🎭 십신 분석 (十神)")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.write("**천간 십신:**")
+            st.write(f"- 년간: {result['sipsin']['year_stem']}")
+            st.write(f"- 월간: {result['sipsin']['month_stem']}")
+            st.write(f"- 일간: {result['sipsin']['day_stem']}")
+            st.write(f"- 시간: {result['sipsin']['hour_stem']}")
+        
+        with col2:
+            st.write("**지지 십신:**")
+            st.write(f"- 년지: {result['sipsin']['year_branch']}")
+            st.write(f"- 월지: {result['sipsin']['month_branch']}")
+            st.write(f"- 일지: {result['sipsin']['day_branch']}")
+            st.write(f"- 시지: {result['sipsin']['hour_branch']}")
+    
+    # 12운성
+    if 'unsung' in result:
+        st.subheader("⭐ 12운성 (十二運星)")
+        unsung_cols = st.columns(4)
+        unsung_data = [
+            ('년지', result['unsung']['year']),
+            ('월지', result['unsung']['month']),
+            ('일지', result['unsung']['day']),
+            ('시지', result['unsung']['hour'])
+        ]
+        for col, (pos, unsung) in zip(unsung_cols, unsung_data):
+            with col:
+                st.info(f"**{pos}**: {unsung}")
+    
+    # 신살
+    if 'sinsal' in result:
+        st.subheader("🔯 신살 (神殺)")
+        sinsal_data = []
+        if result['sinsal']['cheonul']:
+            sinsal_data.append(('천을귀인', result['sinsal']['cheonul'], 'success'))
+        if result['sinsal']['yeokma']:
+            sinsal_data.append(('역마살', result['sinsal']['yeokma'], 'info'))
+        if result['sinsal']['dohwa']:
+            sinsal_data.append(('도화살', result['sinsal']['dohwa'], 'info'))
+        if result['sinsal']['gongmang']:
+            sinsal_data.append(('공망', result['sinsal']['gongmang'], 'warning'))
+        if result['sinsal']['wonjin']:
+            sinsal_data.append(('원진', result['sinsal']['wonjin'], 'warning'))
+        if result['sinsal']['yangin']:
+            sinsal_data.append(('양인', result['sinsal']['yangin'], 'warning'))
+        
+        if sinsal_data:
+            for name, positions, style in sinsal_data:
+                if style == 'success':
+                    st.success(f"**{name}**: {', '.join(positions)}")
+                elif style == 'info':
+                    st.info(f"**{name}**: {', '.join(positions)}")
+                else:
+                    st.warning(f"**{name}**: {', '.join(positions)}")
+        else:
+            st.info("특별한 신살이 없습니다.")
+    
+    # 형충회합
+    if 'hyungchunghap' in result:
+        st.subheader("⚡ 형충회합 (刑沖會合)")
+        
+        hch = result['hyungchunghap']
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if hch['chung']:
+                st.error(f"**충(沖)**: {', '.join(hch['chung'])}")
+            else:
+                st.info("**충(沖)**: 없음")
+            
+            if hch['hyung']:
+                st.warning(f"**형(刑)**: {', '.join(hch['hyung'])}")
+            else:
+                st.info("**형(刑)**: 없음")
+        
+        with col2:
+            if hch['yukhap']:
+                st.success(f"**육합(六合)**: {', '.join(hch['yukhap'])}")
+            else:
+                st.info("**육합(六合)**: 없음")
+            
+            if hch['samhap']:
+                st.success(f"**삼합(三合)**: {', '.join(hch['samhap'])}")
+            else:
+                st.info("**삼합(三合)**: 없음")
+    
+    # 납음오행
+    if 'napeum' in result:
+        with st.expander("🎨 납음오행 (納音五行)"):
+            napeum_cols = st.columns(4)
+            napeum_data = [
+                ('년주', result['napeum']['year']),
+                ('월주', result['napeum']['month']),
+                ('일주', result['napeum']['day']),
+                ('시주', result['napeum']['hour'])
+            ]
+            for col, (pos, napeum) in zip(napeum_cols, napeum_data):
+                with col:
+                    st.write(f"**{pos}**: {napeum}")
+    
+    # 대운
+    if 'daeun' in result:
+        st.subheader("🔮 대운 (大運)")
+        st.caption(f"{result['daeun']['start_age']}세부터 시작, {result['daeun']['direction']}")
+        
+        import pandas as pd
+        daeun_df = pd.DataFrame(result['daeun']['list'])
+        st.dataframe(daeun_df, use_container_width=True, hide_index=True)
+    
+    # 세운
+    if 'seun' in result:
+        st.subheader("📅 세운 (歲運)")
+        current_year = result['seun']['current']['년도']
+        current_jiazi = result['seun']['current']['간지']
+        current_age = result['seun']['current']['나이']
+        
+        st.info(f"**현재**: {current_year}년 {current_jiazi} ({current_age}세)")
+        
+        with st.expander("세운표 보기"):
+            for seun in result['seun']['list']:
+                marker = " ← 현재" if seun['현재'] else ""
+                prefix = "**" if seun['현재'] else ""
+                suffix = "**" if seun['현재'] else ""
+                st.text(f"{prefix}{seun['년도']}년 {seun['간지']} ({seun['나이']}세){suffix}{marker}")
+    
+    st.divider()
     
     # 음양 분석
     with st.expander("☯️ 음양 분석"):

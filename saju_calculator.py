@@ -5,6 +5,20 @@ Four Pillars (Saju) Calculator Module
 from datetime import datetime
 from typing import Dict, Tuple
 
+# 새로 추가된 모듈들 임포트
+try:
+    from sipsin import get_sipsin, get_branch_sipsin
+    from unsung_12 import get_twelve_unsung
+    from sinsal import (get_cheonul_gwiin, get_yeokma, get_dohwa, 
+                        get_gongmang, get_wonjin, get_yangin)
+    from napeum import get_napeum
+    from hyungchunghap import get_chung, get_yukhap, get_samhap, get_hyung
+    from daeun import get_daeun_direction, calculate_daeun_start_age, generate_daeun
+    from seun import get_current_seun_info, generate_seun
+    ENHANCED_MODULES_AVAILABLE = True
+except ImportError:
+    ENHANCED_MODULES_AVAILABLE = False
+
 # 천간 (Heavenly Stems) - 10개
 HEAVENLY_STEMS = ['갑(甲)', '을(乙)', '병(丙)', '정(丁)', '무(戊)', '기(己)', '경(庚)', '신(辛)', '임(壬)', '계(癸)']
 HEAVENLY_STEMS_HANJA = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
@@ -156,7 +170,7 @@ def get_hour_pillar(date: datetime, day_stem: str) -> Tuple[str, str]:
     return stem, branch
 
 
-def calculate_four_pillars(birth_date: datetime) -> Dict:
+def calculate_four_pillars(birth_date: datetime, gender: str = '남') -> Dict:
     """사주팔자 계산"""
     year = birth_date.year
     month = birth_date.month
@@ -184,7 +198,13 @@ def calculate_four_pillars(birth_date: datetime) -> Dict:
     stems_yin_yang = [STEM_YIN_YANG[s] for s in stems]
     branches_yin_yang = [BRANCH_YIN_YANG[b] for b in branches]
     
-    return {
+    # 한자 변환
+    year_hanja = f"{HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(year_stem)]}{EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(year_branch)]}"
+    month_hanja = f"{HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(month_stem)]}{EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(month_branch)]}"
+    day_hanja = f"{HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(day_stem)]}{EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(day_branch)]}"
+    hour_hanja = f"{HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(hour_stem)]}{EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(hour_branch)]}"
+    
+    result = {
         'year_pillar': f"{year_stem}{year_branch}",
         'month_pillar': f"{month_stem}{month_branch}",
         'day_pillar': f"{day_stem}{day_branch}",
@@ -202,11 +222,98 @@ def calculate_four_pillars(birth_date: datetime) -> Dict:
         'stems_yin_yang': stems_yin_yang,
         'branches_yin_yang': branches_yin_yang,
         'birth_date': birth_date.strftime('%Y년 %m월 %d일 %H시'),
-        'year_hanja': f"{HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(year_stem)]}{EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(year_branch)]}",
-        'month_hanja': f"{HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(month_stem)]}{EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(month_branch)]}",
-        'day_hanja': f"{HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(day_stem)]}{EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(day_branch)]}",
-        'hour_hanja': f"{HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(hour_stem)]}{EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(hour_branch)]}"
+        'year_hanja': year_hanja,
+        'month_hanja': month_hanja,
+        'day_hanja': day_hanja,
+        'hour_hanja': hour_hanja
     }
+    
+    # 추가 정보 계산 (모듈이 있을 때만)
+    if ENHANCED_MODULES_AVAILABLE:
+        try:
+            # 한자만 추출
+            day_stem_hanja = HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(day_stem)]
+            year_stem_hanja = HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(year_stem)]
+            month_stem_hanja = HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(month_stem)]
+            hour_stem_hanja = HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(hour_stem)]
+            
+            year_branch_hanja = EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(year_branch)]
+            month_branch_hanja = EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(month_branch)]
+            day_branch_hanja = EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(day_branch)]
+            hour_branch_hanja = EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(hour_branch)]
+            
+            branches_hanja = [year_branch_hanja, month_branch_hanja, day_branch_hanja, hour_branch_hanja]
+            
+            # 십신
+            result['sipsin'] = {
+                'year_stem': get_sipsin(day_stem_hanja, year_stem_hanja),
+                'month_stem': get_sipsin(day_stem_hanja, month_stem_hanja),
+                'day_stem': '비견(比肩)',  # 일간 자신
+                'hour_stem': get_sipsin(day_stem_hanja, hour_stem_hanja),
+                'year_branch': get_branch_sipsin(day_stem_hanja, year_branch_hanja),
+                'month_branch': get_branch_sipsin(day_stem_hanja, month_branch_hanja),
+                'day_branch': get_branch_sipsin(day_stem_hanja, day_branch_hanja),
+                'hour_branch': get_branch_sipsin(day_stem_hanja, hour_branch_hanja)
+            }
+            
+            # 12운성
+            result['unsung'] = {
+                'year': get_twelve_unsung(day_stem_hanja, year_branch_hanja),
+                'month': get_twelve_unsung(day_stem_hanja, month_branch_hanja),
+                'day': get_twelve_unsung(day_stem_hanja, day_branch_hanja),
+                'hour': get_twelve_unsung(day_stem_hanja, hour_branch_hanja)
+            }
+            
+            # 신살
+            result['sinsal'] = {
+                'cheonul': get_cheonul_gwiin(year_stem_hanja, month_stem_hanja, day_stem_hanja, branches_hanja),
+                'yeokma': get_yeokma(branches_hanja),
+                'dohwa': get_dohwa(branches_hanja),
+                'gongmang': get_gongmang(day_hanja, branches_hanja),
+                'wonjin': get_wonjin(branches_hanja),
+                'yangin': get_yangin(day_stem_hanja, branches_hanja)
+            }
+            
+            # 납음오행
+            result['napeum'] = {
+                'year': get_napeum(year_hanja),
+                'month': get_napeum(month_hanja),
+                'day': get_napeum(day_hanja),
+                'hour': get_napeum(hour_hanja)
+            }
+            
+            # 형충회합
+            result['hyungchunghap'] = {
+                'chung': get_chung(branches_hanja),
+                'yukhap': get_yukhap(branches_hanja),
+                'samhap': get_samhap(branches_hanja),
+                'hyung': get_hyung(branches_hanja)
+            }
+            
+            # 대운
+            direction = get_daeun_direction(gender, year_stem_hanja)
+            daeun_age = calculate_daeun_start_age(birth_date, gender, year_stem_hanja, month)
+            daeun_list = generate_daeun(year_stem, month_stem, year_branch, month_branch,
+                                       gender, daeun_age, day_stem, 10)
+            result['daeun'] = {
+                'direction': direction,
+                'start_age': daeun_age,
+                'list': daeun_list
+            }
+            
+            # 세운
+            current_year = datetime.now().year
+            current_seun = get_current_seun_info(year, current_year)
+            seun_list = generate_seun(year, current_year, 5, 10)
+            result['seun'] = {
+                'current': current_seun,
+                'list': seun_list
+            }
+            
+        except Exception as e:
+            print(f"추가 정보 계산 중 오류: {e}")
+    
+    return result
 
 
 def get_element_count(result: Dict) -> Dict[str, int]:
