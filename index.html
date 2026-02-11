@@ -491,6 +491,8 @@
             const yearData = lunarData.find(d => d[0] === year);
             if (!yearData) return 29;
             const monthDaysBits = yearData[1];
+            // Bit encoding: month 12 = bit 0, month 11 = bit 1, ..., month 1 = bit 11
+            // This reverse ordering is the standard encoding format for lunar calendar data
             return (monthDaysBits & (1 << (12 - month))) ? 30 : 29;
         }
 
@@ -646,9 +648,9 @@
                 astroYear = year - 1;
             }
 
-            // Year 4 (Jiazi year) corresponds to stem-branch cycle start
-            // Year 1984 was 甲子 (Jiazi) year
-            const offset = (astroYear - 1984 + 60) % 60;
+            // Year 1984 was 甲子 (Jiazi) year (index 0 in 60-year cycle)
+            // Use modulo with adjustment to handle all years from 1900-2100
+            const offset = ((astroYear - 1984) % 60 + 60) % 60;
             return getJiazi(offset);
         }
 
@@ -739,9 +741,11 @@
             // 23:00-01:00 = 子時, 01:00-03:00 = 丑時, etc.
             let adjustedHour = hour;
             
-            // Handle 23:00-24:00 as next day's 子時
+            // Handle 23:00-24:00 as 子時 (midnight hour)
+            // Note: Hour 23 is the START of the next calendar day's 子時, 
+            // but still uses the current day's stem for calculation per traditional rules
             if (hour === 23) {
-                adjustedHour = 0; // Treat as 子時 of next day
+                adjustedHour = 0; // Treat as 子時
             }
 
             const hourBranchIndex = Math.floor((adjustedHour + 1) / 2) % 12;
