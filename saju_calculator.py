@@ -110,8 +110,10 @@ def get_month_pillar(year: int, month: int) -> Tuple[str, str]:
     branch = MONTH_BRANCHES[lunar_month_idx]
     
     # 월간 계산 (연간에 따라 달라짐)
-    # 甲己년: 丙寅月 시작, 乙庚년: 戊寅월 시작, 丙辛년: 庚寅월 시작
-    # 丁壬년: 壬寅월 시작, 戊癸년: 甲寅월 시작
+    # 전통 명리학 규칙: 甲己년은 丙寅월부터, 乙庚년은 戊寅월부터, 
+    # 丙辛년은 庚寅월부터, 丁壬년은 壬寅월부터, 戊癸년은 甲寅월부터
+    # month_stem_start는 寅월(index 0)의 천간 시작 인덱스
+    # 0=甲, 2=丙, 4=戊, 6=庚, 8=壬
     year_stem_idx = (year - 1984) % 10
     month_stem_start = {0: 2, 1: 4, 2: 6, 3: 8, 4: 0, 5: 2, 6: 4, 7: 6, 8: 8, 9: 0}
     

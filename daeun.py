@@ -83,36 +83,40 @@ def calculate_daeun_start_age(birth_date: datetime, gender: str, year_stem: str,
     next_jeolip_month, next_jeolip_day = JEOLIP_DATES.get(month, (month+1, 5))
     
     # 다음/이전 절입일까지의 일수 계산 (간단히)
-    if direction == '순행':
-        # 다음 절입일까지
-        if month == 12:
-            next_jeolip_date = datetime(birth_date.year + 1, next_jeolip_month, next_jeolip_day)
+    try:
+        if direction == '순행':
+            # 다음 절입일까지
+            if month == 12:
+                next_jeolip_date = datetime(birth_date.year + 1, next_jeolip_month, next_jeolip_day)
+            else:
+                next_jeolip_date = datetime(birth_date.year, next_jeolip_month, next_jeolip_day)
+            
+            if next_jeolip_date < birth_date:
+                next_jeolip_date = datetime(birth_date.year + 1, next_jeolip_month, next_jeolip_day)
+            
+            days_diff = (next_jeolip_date - birth_date).days
         else:
-            next_jeolip_date = datetime(birth_date.year, next_jeolip_month, next_jeolip_day)
-        
-        if next_jeolip_date < birth_date:
-            next_jeolip_date = datetime(birth_date.year + 1, next_jeolip_month, next_jeolip_day)
-        
-        days_diff = (next_jeolip_date - birth_date).days
-    else:
-        # 이전 절입일까지
-        prev_month = month - 1 if month > 1 else 12
-        prev_jeolip_month, prev_jeolip_day = JEOLIP_DATES.get(prev_month, (month, 5))
-        
-        if prev_month == 12:
-            prev_jeolip_date = datetime(birth_date.year - 1, prev_jeolip_month, prev_jeolip_day)
-        else:
-            prev_jeolip_date = datetime(birth_date.year, prev_jeolip_month, prev_jeolip_day)
-        
-        if prev_jeolip_date > birth_date:
-            prev_month_2 = prev_month - 1 if prev_month > 1 else 12
-            prev_jeolip_month, prev_jeolip_day = JEOLIP_DATES.get(prev_month_2, (prev_month, 5))
-            if prev_month_2 == 12:
+            # 이전 절입일까지
+            prev_month = month - 1 if month > 1 else 12
+            prev_jeolip_month, prev_jeolip_day = JEOLIP_DATES.get(prev_month, (month, 5))
+            
+            if prev_month == 12:
                 prev_jeolip_date = datetime(birth_date.year - 1, prev_jeolip_month, prev_jeolip_day)
             else:
                 prev_jeolip_date = datetime(birth_date.year, prev_jeolip_month, prev_jeolip_day)
-        
-        days_diff = (birth_date - prev_jeolip_date).days
+            
+            if prev_jeolip_date > birth_date:
+                prev_month_2 = prev_month - 1 if prev_month > 1 else 12
+                prev_jeolip_month, prev_jeolip_day = JEOLIP_DATES.get(prev_month_2, (prev_month, 5))
+                if prev_month_2 == 12:
+                    prev_jeolip_date = datetime(birth_date.year - 1, prev_jeolip_month, prev_jeolip_day)
+                else:
+                    prev_jeolip_date = datetime(birth_date.year, prev_jeolip_month, prev_jeolip_day)
+            
+            days_diff = (birth_date - prev_jeolip_date).days
+    except ValueError:
+        # Invalid date (e.g., February 30), use default
+        days_diff = 15  # Default to ~5 years for daeun start
     
     # 3일 = 1년
     daeun_age = max(1, (days_diff // 3) + 1)
