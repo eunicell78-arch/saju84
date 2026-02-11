@@ -3,6 +3,7 @@
 Saju (Four Pillars) Calculator with AI Interpretation
 """
 import streamlit as st
+import pandas as pd
 from datetime import datetime, time
 from saju_calculator import calculate_four_pillars, get_element_count
 from sipsin import get_sipsin, get_sipsin_for_branch
@@ -335,7 +336,6 @@ if st.session_state.get('saju_calculated', False):
     st.caption(f"{daeun['start_age']}세부터 시작, {daeun['direction']}")
     
     # 대운표 생성
-    import pandas as pd
     daeun_data = []
     for pillar in daeun['pillars']:
         stem = pillar['stem']

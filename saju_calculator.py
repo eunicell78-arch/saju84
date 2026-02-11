@@ -2,7 +2,7 @@
 사주팔자 계산 모듈
 Four Pillars (Saju) Calculator Module
 """
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, Tuple
 
 # 천간 (Heavenly Stems) - 10개

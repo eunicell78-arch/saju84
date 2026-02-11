@@ -2,7 +2,7 @@
 대운(大運) 계산 모듈
 Great Fortune Calculation Module
 """
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # 60갑자 순환
 SIXTY_JIAZI = [
