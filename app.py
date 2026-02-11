@@ -328,7 +328,7 @@ with col1:
     
     # 직업/학생 선택
     occupation_type = st.selectbox(
-        "직업",
+        "구분",
         options=['일반', '학생'],
         help="학생인 경우 '학생'을 선택하면 맞춤형 풀이를 받을 수 있습니다."
     )
@@ -369,13 +369,18 @@ with col1:
         # 양력 날짜로 datetime 객체 생성
         birth_datetime = datetime(year, month, day, birth_hour, birth_minute)
         
+        # 이전 생년월일과 다르면 대화 히스토리 초기화
+        if 'birth_datetime' in st.session_state and st.session_state['birth_datetime'] != birth_datetime:
+            st.session_state['conversation_history'] = []
+        
         st.session_state['saju_calculated'] = True
         st.session_state['birth_datetime'] = birth_datetime
         st.session_state['gender'] = gender
         st.session_state['is_student'] = (occupation_type == "학생")
         st.session_state['grade_level'] = grade_level if occupation_type == "학생" else ""
-        # 대화 히스토리 초기화
-        st.session_state['conversation_history'] = []
+        # 대화 히스토리 초기화 (첫 계산 시에만)
+        if 'conversation_history' not in st.session_state:
+            st.session_state['conversation_history'] = []
 
 with col2:
     st.subheader("ℹ️ 안내사항")
@@ -665,18 +670,6 @@ AI 사주 풀이
             st.markdown("### 💬 추가 질문하기")
             st.caption("사주와 관련하여 궁금한 점을 더 물어보세요. 이전 대화 내용이 유지됩니다.")
             
-            # 대화 히스토리 초기화
-            if 'conversation_history' not in st.session_state:
-                st.session_state['conversation_history'] = []
-            
-            # 이전 대화 내용 표시
-            if st.session_state['conversation_history']:
-                with st.expander("📜 이전 대화 내역 보기", expanded=False):
-                    for idx, conv in enumerate(st.session_state['conversation_history'], 1):
-                        st.markdown(f"**Q{idx}: {conv['question']}**")
-                        st.markdown(f"A{idx}: {conv['answer']}")
-                        st.markdown("---")
-            
             # 추가 질문 입력
             user_question = st.text_input(
                 "질문을 입력하세요",
@@ -703,17 +696,26 @@ AI 사주 풀이
                             'answer': answer
                         })
                         
-                        # 페이지 새로고침을 위해 rerun
+                        # 답변 표시를 위해 rerun
                         st.rerun()
                 else:
                     st.warning("질문을 입력해주세요.")
             
-            # 최신 답변 표시
-            if st.session_state['conversation_history']:
+            # 최신 답변 표시 (답변이 있을 때만)
+            if st.session_state.get('conversation_history', []):
                 latest = st.session_state['conversation_history'][-1]
-                st.markdown("#### 최신 답변")
+                st.markdown("#### 💡 답변")
                 st.info(f"**Q: {latest['question']}**")
                 st.markdown(latest['answer'])
+                
+                # 이전 대화 내역이 2개 이상일 때만 히스토리 표시
+                if len(st.session_state['conversation_history']) > 1:
+                    with st.expander(f"📜 이전 대화 내역 보기 ({len(st.session_state['conversation_history']) - 1}개)", expanded=False):
+                        for idx, conv in enumerate(st.session_state['conversation_history'][:-1], 1):
+                            st.markdown(f"**Q{idx}: {conv['question']}**")
+                            st.markdown(f"A{idx}: {conv['answer']}")
+                            if idx < len(st.session_state['conversation_history']) - 1:
+                                st.markdown("---")
 
 # 푸터
 st.divider()
