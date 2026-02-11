@@ -147,14 +147,15 @@ def get_saju_interpretation(saju_result: dict, is_student: bool = False, grade_l
         student_info = f"\n\n## 학생 정보\n- 학년: {grade_level}"
         student_sections = """
 ### 8. 향후 3년간 학업운 및 시험운 흐름
-- **1년차 학업운 및 시험운**: 주요 학업 흐름, 중요 시험 시기, 집중해야 할 과목
-- **2년차 학업운 및 시험운**: 주요 학업 흐름, 중요 시험 시기, 집중해야 할 과목
-- **3년차 학업운 및 시험운**: 주요 학업 흐름, 중요 시험 시기, 집중해야 할 과목
+- **1년차**: 구체적인 학업 흐름, 중요 시험 시기, 집중 과목
+- **2년차**: 구체적인 학업 흐름, 중요 시험 시기, 집중 과목
+- **3년차**: 구체적인 학업 흐름, 중요 시험 시기, 집중 과목
 
 ### 9. 진로적성 및 전공추천
-- **타고난 적성 분석**: 이과/문과/예체능 중 어느 쪽에 적합한지
-- **추천 전공**: 구체적인 전공 3-5개 제시
-- **추천 진로 방향**: 장기적인 진로 방향과 발전 가능성
+- **타고난 적성 분석**: (이과/문과/예체능/실용)
+- **추천 전공**: (구체적으로 3-5개, 각각 이유 포함)
+- **추천 진로 방향**: (구체적인 직업 3-5개)
+- **피해야 할 분야**
 """
     
     prompt = f"""
@@ -195,13 +196,13 @@ def get_saju_interpretation(saju_result: dict, is_student: bool = False, grade_l
 ### 2. 주요 귀인과 살성
 - **길신(吉神) 풀이**: 천을귀인, 문창귀인 등 긍정적인 신살과 그 영향
 - **흉살(凶殺) 풀이**: 백호살, 역마살 등 주의해야 할 살과 그 영향
-- 각 귀인과 살이 인생에 미치는 **구체적 영향** 설명
+- 각 귀인과 살이 인생에 미치는 **구체적 영향, 의미, 활용/대응 방법**을 상세히 설명
 
 ### 3. 성격 및 기질 분석
-- **외향/내향 성향**: 어느 쪽에 가까운지
-- **이성/감성 비율**: 논리적인지 감성적인지
-- **주도성, 분석력, 감수성, 리더십** 등의 특성
-- **대인관계 스타일**: 타인과 어떻게 소통하는지
+- **외향/내향 성향**: 어느 쪽에 가까운지 (3-5개의 구체적인 예시 포함)
+- **이성/감성 비율**: 논리적인지 감성적인지 (3-5개의 구체적인 예시 포함)
+- **주도성, 분석력, 감수성, 리더십** 등의 특성 (3-5개의 구체적인 예시 포함)
+- **대인관계 스타일**: 타인과 어떻게 소통하는지 (3-5개의 구체적인 예시 포함)
 
 ### 4. 평생운세
 - **유년기 (0-20세)**: 주요 운세와 특징
@@ -217,7 +218,7 @@ def get_saju_interpretation(saju_result: dict, is_student: bool = False, grade_l
 - **피해야 할 직업 유형**: 맞지 않는 직업 유형과 이유
 
 ### 6. 올해 운세
-- **월별 세부 운세**: 1월부터 12월까지 각 달의 운세를 간략히 설명
+- **월별 세부 운세**: 1월부터 12월까지 각 달의 재물운, 건강운, 대인관계를 모두 포함하여 설명
   * 1월: 
   * 2월:
   * 3월:
@@ -243,19 +244,28 @@ def get_saju_interpretation(saju_result: dict, is_student: bool = False, grade_l
 1. 모든 내용은 한국어로 작성
 2. 긍정적이고 희망적인 톤 유지
 3. 각 섹션을 명확히 구분하여 작성
-4. 월별 운세는 12개월 모두 포함
+4. 월별 운세는 12개월 모두 포함하고, 각 달마다 재물운, 건강운, 대인관계를 모두 설명
 5. 타고난 장점과 가능성을 강조
+6. 각 항목은 최소 3-5개의 구체적인 예시와 함께 설명
+7. 귀인과 살성은 각각의 의미, 인생에 미치는 영향, 활용/대응 방법을 상세히 설명
 """
     
     try:
         response = openai.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o",
             messages=[
-                {"role": "system", "content": "당신은 전문 사주명리학자입니다. 사주팔자를 깊이 있고 정확하게 풀이하며, 희망적이고 긍정적인 메시지를 전달합니다."},
+                {"role": "system", "content": """당신은 30년 경력의 전문 사주명리학자입니다.
+
+다음 규칙을 엄격히 준수하여 풀이해주세요:
+1. 각 섹션마다 최소 5-7문장으로 구체적으로 작성
+2. 월별 운세는 1월부터 12월까지 반드시 모두 포함
+3. 귀인과 살성은 구체적인 영향과 대응 방법까지 설명
+4. 직업 추천은 5-7개의 구체적인 직업명 제시
+5. 모든 내용은 희망적이고 긍정적인 톤으로 작성"""},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
-            max_tokens=4000
+            max_tokens=10000
         )
         
         return response.choices[0].message.content
@@ -304,10 +314,10 @@ def get_followup_answer(saju_result: dict, conversation_history: list, user_ques
     
     try:
         response = openai.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o",
             messages=messages,
             temperature=0.7,
-            max_tokens=1500
+            max_tokens=3000
         )
         
         return response.choices[0].message.content
@@ -334,7 +344,14 @@ with col1:
         help="생년월일을 양력으로 입력할지, 음력으로 입력할지 선택하세요."
     )
     
-    # 음력 선택 시에만 윤달 옵션 표시
+    birth_date = st.date_input(
+        f"생년월일 ({calendar_type})",
+        value=datetime(1990, 1, 1),
+        min_value=datetime(1900, 1, 1),
+        max_value=datetime(2100, 12, 31)
+    )
+    
+    # 음력 선택 시에만 윤달 옵션 표시 (생년월일 입력 아래)
     is_leap_month = False
     if calendar_type == "음력":
         if not LUNAR_CALENDAR_AVAILABLE:
@@ -342,17 +359,10 @@ with col1:
             st.stop()
         
         is_leap_month = st.checkbox(
-            "윤달",
+            "윤달 (閏月)",
             value=False,
-            help="해당 월이 윤달인 경우 체크하세요."
+            help="윤달인 경우 체크하세요"
         )
-    
-    birth_date = st.date_input(
-        f"생년월일 ({calendar_type})",
-        value=datetime(1990, 1, 1),
-        min_value=datetime(1900, 1, 1),
-        max_value=datetime(2100, 12, 31)
-    )
     
     # 시간 입력 (1분 단위)
     col_time1, col_time2 = st.columns(2)
@@ -773,4 +783,4 @@ AI 사주 풀이
 # 푸터
 st.divider()
 st.caption("💡 본 서비스는 참고용이며, 전문가의 상담을 대체할 수 없습니다.")
-st.caption("🤖 AI 풀이는 OpenAI GPT-4를 사용하며, API 비용이 발생할 수 있습니다.")
+st.caption("🤖 AI 풀이는 OpenAI GPT-4o를 사용하며, API 비용이 발생할 수 있습니다.")
