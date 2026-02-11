@@ -123,7 +123,7 @@ def calculate_daeun_start_age(birth_date: datetime, gender: str, year_stem: str,
     years = days_diff // 3
     remaining_days = days_diff % 3
     
-    # 1.5일 이상(2일)이면 반올림하여 1년 추가
+    # 2일 이상이면 반올림하여 1년 추가
     if remaining_days >= 2:
         daeun_age = years + 1
     else:
