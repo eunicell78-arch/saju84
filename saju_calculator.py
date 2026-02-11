@@ -29,20 +29,22 @@ BRANCHES_ELEMENTS = {
     "신": "금(金)", "유": "금(金)", "술": "토(土)", "해": "수(水)"
 }
 
-# 월령 (Monthly Branch) - 절기 기준
+# 월령 (Monthly Branch) - 간략화된 매핑 (실제로는 절기 기준)
+# 주의: 실제 사주에서는 양력 월이 아닌 절기를 기준으로 월지를 결정합니다
+# 이 구현은 단순화된 버전입니다
 MONTH_BRANCHES = {
-    1: 11,  # 인월 (입춘~경칩)
-    2: 0,   # 묘월 (경칩~청명)
-    3: 1,   # 진월 (청명~입하)
-    4: 2,   # 사월 (입하~망종)
-    5: 3,   # 오월 (망종~소서)
-    6: 4,   # 미월 (소서~입추)
-    7: 5,   # 신월 (입추~백로)
-    8: 6,   # 유월 (백로~한로)
-    9: 7,   # 술월 (한로~입동)
-    10: 8,  # 해월 (입동~대설)
-    11: 9,  # 자월 (대설~소한)
-    12: 10  # 축월 (소한~입춘)
+    1: 2,   # 인월 (寅月) - 입춘~경칩
+    2: 3,   # 묘월 (卯月) - 경칩~청명
+    3: 4,   # 진월 (辰月) - 청명~입하
+    4: 5,   # 사월 (巳月) - 입하~망종
+    5: 6,   # 오월 (午月) - 망종~소서
+    6: 7,   # 미월 (未月) - 소서~입추
+    7: 8,   # 신월 (申月) - 입추~백로
+    8: 9,   # 유월 (酉月) - 백로~한로
+    9: 10,  # 술월 (戌月) - 한로~입동
+    10: 11, # 해월 (亥月) - 입동~대설
+    11: 0,  # 자월 (子月) - 대설~소한
+    12: 1   # 축월 (丑月) - 소한~입춘
 }
 
 
@@ -83,7 +85,7 @@ def calculate_month_pillar(year: int, month: int) -> tuple:
         month_stem_base = 0  # 갑
     
     month_stem_idx = (month_stem_base + month - 1) % 10
-    month_branch_idx = (month + 1) % 12
+    month_branch_idx = MONTH_BRANCHES.get(month, 0)
     
     return HEAVENLY_STEMS[month_stem_idx], EARTHLY_BRANCHES[month_branch_idx]
 
@@ -225,6 +227,8 @@ def format_saju_display(result: Dict) -> str:
     output.append("")
     output.append("오행 분포:")
     for element, count in result['element_count'].items():
+        # Ensure count doesn't exceed 8 (4 stems + 4 branches)
+        count = min(count, 8)
         bar = "■" * count + "□" * (8 - count)
         output.append(f"  {element}(木火土金水): {bar} ({count})")
     output.append("")
