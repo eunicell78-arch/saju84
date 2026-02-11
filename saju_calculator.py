@@ -43,9 +43,27 @@ BRANCH_YIN_YANG = {
     '신(申)': '양', '유(酉)': '음', '술(戌)': '양', '해(亥)': '음'
 }
 
-# 월별 지지 (음력 기준 근사)
+# 월별 지지 (음력/절기 기준 근사)
+# 양력 기준 근사: 2월=寅, 3월=卯, ..., 12월=丑, 1월=寅
+# 하지만 절기를 고려하면 12월 중순 이전은 子월, 1월 입춘 이전은 丑월
 MONTH_BRANCHES = ['인(寅)', '묘(卯)', '진(辰)', '사(巳)', '오(午)', '미(未)', 
                   '신(申)', '유(酉)', '술(戌)', '해(亥)', '자(子)', '축(丑)']
+# 절기 근사 매핑 (양력 월 -> 음력 월지)
+# 입춘(2/4경) ~ 경칩 = 寅월, ... , 대설 ~ 소한(1/5경) = 子월, 소한 ~ 입춘 = 丑월
+SOLAR_TO_LUNAR_MONTH = {
+    1: 11,   # 1월 = 丑월 (소한~입춘)
+    2: 0,    # 2월 = 寅월 (입춘~경칩)  
+    3: 1,    # 3월 = 卯월
+    4: 2,    # 4월 = 辰월
+    5: 3,    # 5월 = 巳월
+    6: 4,    # 6월 = 午월
+    7: 5,    # 7월 = 未월
+    8: 6,    # 8월 = 申월
+    9: 7,    # 9월 = 酉월
+    10: 8,   # 10월 = 戌월
+    11: 9,   # 11월 = 亥월
+    12: 10   # 12월 = 子월 (대설~소한)
+}
 
 # 시간별 지지
 HOUR_BRANCHES = {
@@ -72,30 +90,37 @@ def get_stem_branch(year: int) -> Tuple[str, str]:
 
 
 def get_month_pillar(year: int, month: int) -> Tuple[str, str]:
-    """월주 계산"""
-    # 월지는 고정 (입춘 기준이지만 간단히 월로 근사)
-    branch = MONTH_BRANCHES[month - 1] if 1 <= month <= 12 else MONTH_BRANCHES[0]
+    """월주 계산 (절기 기준 근사)"""
+    # 월지 결정 (절기 기준 근사)
+    lunar_month_idx = SOLAR_TO_LUNAR_MONTH.get(month, 0)
+    branch = MONTH_BRANCHES[lunar_month_idx]
     
-    # 월간 계산 (연간에 따라 달라짐 - 간단한 규칙 적용)
+    # 월간 계산 (연간에 따라 달라짐)
+    # 甲己년: 丙寅月 시작, 乙庚년: 戊寅월 시작, 丙辛년: 庚寅월 시작
+    # 丁壬년: 壬寅월 시작, 戊癸년: 甲寅월 시작
     year_stem_idx = (year - 1984) % 10
-    # 갑기년(0,5)은 병인월, 을경년(1,6)은 무인월...
     month_stem_start = {0: 2, 1: 4, 2: 6, 3: 8, 4: 0, 5: 2, 6: 4, 7: 6, 8: 8, 9: 0}
-    stem_idx = (month_stem_start[year_stem_idx] + (month - 1)) % 10
+    
+    # 寅월(index 0)을 기준으로 계산
+    # lunar_month_idx는 MONTH_BRANCHES에서의 인덱스 (寅=0, 卯=1, ..., 丑=11)
+    stem_idx = (month_stem_start[year_stem_idx] + lunar_month_idx) % 10
     stem = HEAVENLY_STEMS[stem_idx]
     
     return stem, branch
 
 
 def get_day_pillar(date: datetime) -> Tuple[str, str]:
-    """일주 계산 (간지 순환 계산)"""
-    # 기준일: 1900년 1월 1일 = 갑진일 (庚辰)로 추정
-    # 주의: 정확한 역법 계산을 위해서는 만세력 데이터베이스를 참조하는 것이 좋습니다
-    # 이 계산은 근사치이며 참고용입니다
+    """일주 계산 (60갑자 순환)"""
+    # 기준일: 1900년 1월 1일 = 甲戌일 (60갑자 index 10)
+    # 이 계산은 양력 기준 근사치입니다
     base_date = datetime(1900, 1, 1)
-    days_diff = (date - base_date).days
+    base_offset = 10  # 甲戌
     
-    stem_idx = days_diff % 10
-    branch_idx = days_diff % 12
+    days_diff = (date - base_date).days
+    jiazi_index = (base_offset + days_diff) % 60
+    
+    stem_idx = jiazi_index % 10
+    branch_idx = jiazi_index % 12
     
     stem = HEAVENLY_STEMS[stem_idx]
     branch = EARTHLY_BRANCHES[branch_idx]
