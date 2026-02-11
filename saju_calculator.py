@@ -2,7 +2,7 @@
 사주팔자 계산 모듈
 Four Pillars (Saju) Calculator Module
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Tuple
 
 # 천간 (Heavenly Stems) - 10개
@@ -12,6 +12,20 @@ HEAVENLY_STEMS_HANJA = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', 
 # 지지 (Earthly Branches) - 12개
 EARTHLY_BRANCHES = ['자(子)', '축(丑)', '인(寅)', '묘(卯)', '진(辰)', '사(巳)', '오(午)', '미(未)', '신(申)', '유(酉)', '술(戌)', '해(亥)']
 EARTHLY_BRANCHES_HANJA = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
+
+# 60갑자 (60 Jiazi Cycle)
+SIXTY_JIAZI = [
+    ('甲', '子'), ('乙', '丑'), ('丙', '寅'), ('丁', '卯'), ('戊', '辰'), ('己', '巳'),
+    ('庚', '午'), ('辛', '未'), ('壬', '申'), ('癸', '酉'), ('甲', '戌'), ('乙', '亥'),
+    ('丙', '子'), ('丁', '丑'), ('戊', '寅'), ('己', '卯'), ('庚', '辰'), ('辛', '巳'),
+    ('壬', '午'), ('癸', '未'), ('甲', '申'), ('乙', '酉'), ('丙', '戌'), ('丁', '亥'),
+    ('戊', '子'), ('己', '丑'), ('庚', '寅'), ('辛', '卯'), ('壬', '辰'), ('癸', '巳'),
+    ('甲', '午'), ('乙', '未'), ('丙', '申'), ('丁', '酉'), ('戊', '戌'), ('己', '亥'),
+    ('庚', '子'), ('辛', '丑'), ('壬', '寅'), ('癸', '卯'), ('甲', '辰'), ('乙', '巳'),
+    ('丙', '午'), ('丁', '未'), ('戊', '申'), ('己', '酉'), ('庚', '戌'), ('辛', '亥'),
+    ('壬', '子'), ('癸', '丑'), ('甲', '寅'), ('乙', '卯'), ('丙', '辰'), ('丁', '巳'),
+    ('戊', '午'), ('己', '未'), ('庚', '申'), ('辛', '酉'), ('壬', '戌'), ('癸', '亥')
+]
 
 # 오행 (Five Elements)
 STEM_ELEMENTS = {
@@ -43,88 +57,153 @@ BRANCH_YIN_YANG = {
     '신(申)': '양', '유(酉)': '음', '술(戌)': '양', '해(亥)': '음'
 }
 
-# 월별 지지 (음력 기준 근사)
-MONTH_BRANCHES = ['인(寅)', '묘(卯)', '진(辰)', '사(巳)', '오(午)', '미(未)', 
-                  '신(申)', '유(酉)', '술(戌)', '해(亥)', '자(子)', '축(丑)']
+# 절기별 월지 (Solar Terms - approximate dates)
+# 입춘(立春) 2월 4일경, 경칩(驚蟄) 3월 6일경...
+SOLAR_TERMS = [
+    # (month, day_start, branch_index) - 입춘부터 시작
+    (2, 4, 2),   # 입춘 - 寅 (인월)
+    (3, 6, 3),   # 경칩 - 卯 (묘월)
+    (4, 5, 4),   # 청명 - 辰 (진월)
+    (5, 6, 5),   # 입하 - 巳 (사월)
+    (6, 6, 6),   # 망종 - 午 (오월)
+    (7, 7, 7),   # 소서 - 未 (미월)
+    (8, 8, 8),   # 입추 - 申 (신월)
+    (9, 8, 9),   # 백로 - 酉 (유월)
+    (10, 8, 10), # 한로 - 戌 (술월)
+    (11, 7, 11), # 입동 - 亥 (해월)
+    (12, 7, 0),  # 대설 - 子 (자월)
+    (1, 6, 1),   # 소한 - 丑 (축월)
+]
 
-# 시간별 지지
-HOUR_BRANCHES = {
-    (23, 1): '자(子)', (1, 3): '축(丑)', (3, 5): '인(寅)', (5, 7): '묘(卯)',
-    (7, 9): '진(辰)', (9, 11): '사(巳)', (11, 13): '오(午)', (13, 15): '미(未)',
-    (15, 17): '신(申)', (17, 19): '유(酉)', (19, 21): '술(戌)', (21, 23): '해(亥)'
-}
+# 시간별 지지 (24시간 기준)
+def get_hour_branch_index(hour: int) -> int:
+    """시간을 지지 인덱스로 변환 (자시=0)"""
+    # 23-01시: 子, 01-03시: 丑, 03-05시: 寅...
+    if 23 <= hour or hour < 1:
+        return 0  # 子
+    elif 1 <= hour < 3:
+        return 1  # 丑
+    elif 3 <= hour < 5:
+        return 2  # 寅
+    elif 5 <= hour < 7:
+        return 3  # 卯
+    elif 7 <= hour < 9:
+        return 4  # 辰
+    elif 9 <= hour < 11:
+        return 5  # 巳
+    elif 11 <= hour < 13:
+        return 6  # 午
+    elif 13 <= hour < 15:
+        return 7  # 未
+    elif 15 <= hour < 17:
+        return 8  # 申
+    elif 17 <= hour < 19:
+        return 9  # 酉
+    elif 19 <= hour < 21:
+        return 10 # 戌
+    else:  # 21 <= hour < 23
+        return 11 # 亥
 
 
 def get_stem_branch(year: int) -> Tuple[str, str]:
-    """연도를 천간지지로 변환"""
-    # 갑자년(1984)을 기준으로 계산
+    """연도를 천간지지로 변환 (60갑자 순환)"""
+    # 1984년 = 甲子년 기준
     base_year = 1984
-    diff = year - base_year
+    offset = (year - base_year) % 60
     
-    stem_idx = diff % 10
-    branch_idx = diff % 12
+    stem_hanja, branch_hanja = SIXTY_JIAZI[offset]
     
-    # 갑자(0,0) 시작
-    stem = HEAVENLY_STEMS[stem_idx]
-    branch = EARTHLY_BRANCHES[branch_idx]
+    # 한글 변환
+    stem = HEAVENLY_STEMS[HEAVENLY_STEMS_HANJA.index(stem_hanja)]
+    branch = EARTHLY_BRANCHES[EARTHLY_BRANCHES_HANJA.index(branch_hanja)]
     
     return stem, branch
 
 
-def get_month_pillar(year: int, month: int) -> Tuple[str, str]:
-    """월주 계산"""
-    # 월지는 고정 (입춘 기준이지만 간단히 월로 근사)
-    branch = MONTH_BRANCHES[month - 1] if 1 <= month <= 12 else MONTH_BRANCHES[0]
+def get_month_branch(month: int, day: int) -> int:
+    """절기를 고려한 월지 계산 (간략화)"""
+    # 절기 기준으로 월을 결정 (대략적인 날짜 사용)
+    for term_month, term_day, branch_idx in SOLAR_TERMS:
+        if month == term_month:
+            if day >= term_day:
+                return branch_idx
+            else:
+                # 이전 절기
+                prev_idx = SOLAR_TERMS.index((term_month, term_day, branch_idx)) - 1
+                if prev_idx >= 0:
+                    return SOLAR_TERMS[prev_idx][2]
+                else:
+                    return SOLAR_TERMS[-1][2]
     
-    # 월간 계산 (연간에 따라 달라짐 - 간단한 규칙 적용)
+    # 해당 월에 절기가 없으면 이전 절기 찾기
+    for i, (term_month, term_day, branch_idx) in enumerate(SOLAR_TERMS):
+        if term_month > month or (term_month == month and term_day > day):
+            # 이전 절기 사용
+            if i > 0:
+                return SOLAR_TERMS[i-1][2]
+            else:
+                return SOLAR_TERMS[-1][2]
+    
+    # 기본값: 마지막 절기
+    return SOLAR_TERMS[-1][2]
+
+
+def get_month_pillar(year: int, month: int, day: int) -> Tuple[str, str]:
+    """월주 계산 (절기 기준)"""
+    # 월지 계산
+    branch_idx = get_month_branch(month, day)
+    branch = EARTHLY_BRANCHES[branch_idx]
+    
+    # 월간 계산 (연간에 따라 달라짐)
     year_stem_idx = (year - 1984) % 10
-    # 갑기년(0,5)은 병인월, 을경년(1,6)은 무인월...
+    
+    # 월간 기시법 (연간에 따른 월간 시작점)
+    # 甲己년: 丙寅월부터, 乙庚년: 戊寅월부터, 丙辛년: 庚寅월부터, 丁壬년: 壬寅월부터, 戊癸년: 甲寅월부터
     month_stem_start = {0: 2, 1: 4, 2: 6, 3: 8, 4: 0, 5: 2, 6: 4, 7: 6, 8: 8, 9: 0}
-    stem_idx = (month_stem_start[year_stem_idx] + (month - 1)) % 10
+    
+    # 寅월(인월, index=2)이 기준이므로, 寅월부터의 차이를 계산
+    # branch_idx가 월지 인덱스
+    # 寅=2가 첫 달이므로
+    months_from_yin = (branch_idx - 2) % 12
+    stem_idx = (month_stem_start[year_stem_idx] + months_from_yin) % 10
     stem = HEAVENLY_STEMS[stem_idx]
     
     return stem, branch
 
 
 def get_day_pillar(date: datetime) -> Tuple[str, str]:
-    """일주 계산 (간지 순환 계산)"""
-    # 기준일: 1900년 1월 1일 = 갑진일 (庚辰)로 추정
-    # 주의: 정확한 역법 계산을 위해서는 만세력 데이터베이스를 참조하는 것이 좋습니다
-    # 이 계산은 근사치이며 참고용입니다
-    base_date = datetime(1900, 1, 1)
-    days_diff = (date - base_date).days
+    """일주 계산 (60갑자 순환)"""
+    # 기준일: 2000년 1월 1일 = 戊午일 (verified)
+    base_date = datetime(2000, 1, 1)
+    base_jiazi_index = 54  # 戊午 (SIXTY_JIAZI에서 54번째)
     
-    stem_idx = days_diff % 10
-    branch_idx = days_diff % 12
+    days_diff = (date.date() - base_date.date()).days
+    jiazi_index = (base_jiazi_index + days_diff) % 60
     
-    stem = HEAVENLY_STEMS[stem_idx]
-    branch = EARTHLY_BRANCHES[branch_idx]
+    stem_hanja, branch_hanja = SIXTY_JIAZI[jiazi_index]
+    
+    # 한글 변환
+    stem = HEAVENLY_STEMS[HEAVENLY_STEMS_HANJA.index(stem_hanja)]
+    branch = EARTHLY_BRANCHES[EARTHLY_BRANCHES_HANJA.index(branch_hanja)]
     
     return stem, branch
 
 
 def get_hour_pillar(date: datetime, day_stem: str) -> Tuple[str, str]:
-    """시주 계산"""
+    """시주 계산 (시두법 적용)"""
     hour = date.hour
     
-    # 시지 찾기
-    branch = '자(子)'  # 기본값
-    for (start, end), b in HOUR_BRANCHES.items():
-        if start <= hour < end:
-            branch = b
-            break
-        elif start > end:  # 자시(23-01)의 경우
-            if hour >= start or hour < end:
-                branch = b
-                break
+    # 시지 계산 (23시도 당일 자시로 처리, 야자시 제거)
+    branch_idx = get_hour_branch_index(hour)
+    branch = EARTHLY_BRANCHES[branch_idx]
     
-    # 시간 계산 (일간에 따라 달라짐)
+    # 시간 계산 (일간에 따라 달라짐 - 시두법)
     day_stem_idx = HEAVENLY_STEMS.index(day_stem)
-    # 갑기일(0,5)은 갑자시, 을경일(1,6)은 병자시...
+    
+    # 일간별 시작 시간 천간 (甲己日 갑자시, 乙庚日 병자시, 丙辛日 무자시, 丁壬日 경자시, 戊癸日 임자시)
     hour_stem_start = {0: 0, 1: 2, 2: 4, 3: 6, 4: 8, 5: 0, 6: 2, 7: 4, 8: 6, 9: 8}
     
-    # 시지 인덱스 찾기
-    branch_idx = EARTHLY_BRANCHES.index(branch)
+    # 子시(branch_idx=0)부터 시작하는 천간
     stem_idx = (hour_stem_start[day_stem_idx] + branch_idx) % 10
     stem = HEAVENLY_STEMS[stem_idx]
     
@@ -135,12 +214,13 @@ def calculate_four_pillars(birth_date: datetime) -> Dict:
     """사주팔자 계산"""
     year = birth_date.year
     month = birth_date.month
+    day = birth_date.day
     
     # 연주
     year_stem, year_branch = get_stem_branch(year)
     
-    # 월주
-    month_stem, month_branch = get_month_pillar(year, month)
+    # 월주 (절기 고려)
+    month_stem, month_branch = get_month_pillar(year, month, day)
     
     # 일주
     day_stem, day_branch = get_day_pillar(birth_date)
@@ -176,7 +256,7 @@ def calculate_four_pillars(birth_date: datetime) -> Dict:
         'branches_elements': branches_elements,
         'stems_yin_yang': stems_yin_yang,
         'branches_yin_yang': branches_yin_yang,
-        'birth_date': birth_date.strftime('%Y년 %m월 %d일 %H시'),
+        'birth_date': birth_date.strftime('%Y년 %m월 %d일 %H시 %M분'),
         'year_hanja': f"{HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(year_stem)]}{EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(year_branch)]}",
         'month_hanja': f"{HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(month_stem)]}{EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(month_branch)]}",
         'day_hanja': f"{HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(day_stem)]}{EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(day_branch)]}",
