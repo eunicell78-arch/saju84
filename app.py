@@ -43,6 +43,7 @@ def lunar_to_solar(year, month, day, is_leap_month=False):
     """
     try:
         calendar = KoreanLunarCalendar()
+        # setLunarDate() automatically populates solarYear, solarMonth, and solarDay attributes
         calendar.setLunarDate(year, month, day, is_leap_month)
         
         return {
