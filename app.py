@@ -200,9 +200,17 @@ if st.session_state.get('saju_calculated', False):
     st.divider()
     
     # AI 풀이 버튼
+    # API 키 확인
+    api_key_available = False
+    try:
+        if OPENAI_AVAILABLE and "OPENAI_API_KEY" in st.secrets:
+            api_key_available = True
+    except:
+        pass
+    
     if not OPENAI_AVAILABLE:
         st.warning("⚠️ OpenAI 라이브러리가 설치되지 않았습니다. `pip install openai`를 실행해주세요.")
-    elif "OPENAI_API_KEY" not in st.secrets:
+    elif not api_key_available:
         st.warning(
             "⚠️ OpenAI API 키가 설정되지 않았습니다.\n\n"
             "Streamlit Cloud에서 배포 시 Settings → Secrets에서 다음과 같이 설정해주세요:\n\n"
