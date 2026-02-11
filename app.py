@@ -31,51 +31,103 @@ def get_saju_interpretation(saju_result: dict) -> str:
     element_count = get_element_count(saju_result)
     element_str = ", ".join([f"{k}: {v}개" for k, v in element_count.items()])
     
+    # 십신 분포
+    sipsin_str = f"연주: {saju_result['sipsin']['year']}, 월주: {saju_result['sipsin']['month']}, 일주: 일간, 시주: {saju_result['sipsin']['hour']}"
+    
+    # 12운성 분포
+    unsung_str = f"연주: {saju_result['unsung']['year']}, 월주: {saju_result['unsung']['month']}, 일주: {saju_result['unsung']['day']}, 시주: {saju_result['unsung']['hour']}"
+    
+    # 신살 요약
+    sinsal_list = []
+    for key, values in saju_result['sinsal'].items():
+        if values:
+            sinsal_list.extend(values)
+    sinsal_str = ', '.join(sinsal_list) if sinsal_list else '없음'
+    
+    # 형충회합 요약
+    hch = saju_result['hyungchunghap']
+    hch_str = ""
+    if hch['chung']:
+        hch_str += f"충: {', '.join(hch['chung'])}\n"
+    if hch['yukhap'] or hch['samhap']:
+        hch_str += f"합: {', '.join(hch['yukhap'] + hch['samhap'])}\n"
+    if hch['hyung']:
+        hch_str += f"형: {', '.join(hch['hyung'])}"
+    if not hch_str:
+        hch_str = "특별한 형충회합 없음"
+    
+    # 현재 대운
+    daeun = saju_result['daeun']
+    current_daeun = daeun['list'][0] if daeun['list'] else None
+    daeun_str = f"{current_daeun['pillar']} ({current_daeun['age']}~{current_daeun['age']+9}세)" if current_daeun else "계산 불가"
+    
+    # 현재 세운
+    current_seun = [s for s in saju_result['seun'] if s['is_current']]
+    seun_str = f"{current_seun[0]['jiazi']} ({current_seun[0]['age']}세)" if current_seun else "계산 불가"
+    
     prompt = f"""
 당신은 30년 경력의 전문 사주명리학자입니다. 
 다음 사주팔자를 깊이있고 전문적으로 풀이해주세요.
 
 ## 생년월일시
-{saju_result['birth_date']}
+{saju_result['birth_date']} ({saju_result['gender']}성)
 
 ## 사주팔자
-- 연주(年柱): {saju_result['year_pillar']} ({saju_result['year_hanja']})
-- 월주(月柱): {saju_result['month_pillar']} ({saju_result['month_hanja']})
-- 일주(日柱): {saju_result['day_pillar']} ({saju_result['day_hanja']})
-- 시주(時柱): {saju_result['hour_pillar']} ({saju_result['hour_hanja']})
+- 연주(年柱): {saju_result['year_hanja']} (십신: {saju_result['sipsin']['year']}, 12운성: {saju_result['unsung']['year']})
+- 월주(月柱): {saju_result['month_hanja']} (십신: {saju_result['sipsin']['month']}, 12운성: {saju_result['unsung']['month']})
+- 일주(日柱): {saju_result['day_hanja']} (일간: {saju_result['day_stem_hanja']}, 12운성: {saju_result['unsung']['day']})
+- 시주(時柱): {saju_result['hour_hanja']} (십신: {saju_result['sipsin']['hour']}, 12운성: {saju_result['unsung']['hour']})
 
-## 오행 분석
+## 오행 분포
 - 천간: {', '.join(saju_result['stems_elements'])}
 - 지지: {', '.join(saju_result['branches_elements'])}
 - 오행 개수: {element_str}
 
-## 음양 분석
-- 천간: {', '.join(saju_result['stems_yin_yang'])}
-- 지지: {', '.join(saju_result['branches_yin_yang'])}
+## 십신 분포
+{sipsin_str}
+
+## 12운성
+{unsung_str}
+
+## 신살
+{sinsal_str}
+
+## 형충회합
+{hch_str}
+
+## 대운
+방향: {daeun['direction']}, 시작: {daeun['start_age']}세
+현재 대운: {daeun_str}
+
+## 세운
+현재 년도: {seun_str}
 
 ## 풀이 요청사항
 다음 항목들을 구조화된 형식으로 풀이해주세요:
 
-### 1. 기본 성향
-타고난 성격과 기질을 설명해주세요.
+### 1. 사주 구조 분석
+일간의 강약과 사주 전체 구조를 평가해주세요.
 
-### 2. 오행 균형
-오행의 강약과 조화를 분석해주세요. 어떤 오행이 강하고 약한지, 그것이 어떤 의미인지 설명해주세요.
+### 2. 용신 선정
+이 사주에 필요한 용신(用神)과 희신(喜神)을 선정하고 이유를 설명해주세요.
 
-### 3. 길흉 판단
-사주의 전반적인 길흉을 평가해주세요.
+### 3. 십신으로 본 성격과 적성
+십신 배치를 바탕으로 성격과 직업 적성을 분석해주세요.
 
-### 4. 직업운
-이 사주에 적합한 직업 분야를 추천해주세요.
+### 4. 신살의 길흉
+주요 신살의 의미와 영향을 설명해주세요.
 
-### 5. 재물운
-재물에 관한 운세를 설명해주세요.
+### 5. 형충회합의 영향
+형충회합이 사주에 미치는 영향을 분석해주세요.
 
-### 6. 건강
-주의해야 할 건강 부분을 알려주세요.
+### 6. 현재 대운/세운 해석
+현재 대운과 세운이 삶에 어떤 영향을 미치는지 설명해주세요.
 
-### 7. 조언
-인생에서 주의할 점과 조언을 해주세요.
+### 7. 향후 10년 운세
+대운과 세운의 흐름을 바탕으로 향후 운세를 전망해주세요.
+
+### 8. 개선 방향 조언
+오행 조화를 위한 실천적 조언을 해주세요.
 
 한국어로 정중하고 이해하기 쉽게 설명해주세요. 각 섹션은 제목(###)을 포함하여 구분해주세요.
 """
@@ -107,6 +159,14 @@ col1, col2 = st.columns([1, 1])
 with col1:
     st.subheader("📅 생년월일시 입력")
     
+    # 성별 선택 추가
+    gender = st.radio(
+        "성별",
+        options=['남', '여'],
+        horizontal=True,
+        index=1  # 기본값: 여
+    )
+    
     birth_date = st.date_input(
         "생년월일",
         value=datetime(1990, 1, 1),
@@ -125,6 +185,7 @@ with col1:
     if st.button("🔮 사주팔자 계산하기", type="primary", use_container_width=True):
         st.session_state['saju_calculated'] = True
         st.session_state['birth_datetime'] = birth_datetime
+        st.session_state['gender'] = gender
 
 with col2:
     st.subheader("ℹ️ 안내사항")
@@ -140,27 +201,43 @@ with col2:
 # 사주 계산 결과 표시
 if st.session_state.get('saju_calculated', False):
     birth_datetime = st.session_state['birth_datetime']
+    gender = st.session_state.get('gender', '여')
     
     with st.spinner("사주팔자를 계산하는 중..."):
-        result = calculate_four_pillars(birth_datetime)
+        result = calculate_four_pillars(birth_datetime, gender)
     
-    st.success(f"✅ {result['birth_date']} 출생자의 사주팔자")
+    st.success(f"✅ {result['birth_date']} 출생, {gender}성의 사주팔자")
     
-    # 사주팔자 표시
+    # 사주팔자 표시 (가로로 4기둥)
     st.subheader("📊 사주팔자 (四柱八字)")
     
     cols = st.columns(4)
     pillars = [
-        ("연주(年柱)", result['year_pillar'], result['year_hanja']),
-        ("월주(月柱)", result['month_pillar'], result['month_hanja']),
-        ("일주(日柱)", result['day_pillar'], result['day_hanja']),
-        ("시주(時柱)", result['hour_pillar'], result['hour_hanja'])
+        ("시주(時柱)", result['hour_pillar'], result['hour_hanja'], 'hour'),
+        ("일주(日柱)", result['day_pillar'], result['day_hanja'], 'day'),
+        ("월주(月柱)", result['month_pillar'], result['month_hanja'], 'month'),
+        ("연주(年柱)", result['year_pillar'], result['year_hanja'], 'year')
     ]
     
-    for col, (title, pillar, hanja) in zip(cols, pillars):
+    for col, (title, pillar, hanja, pos) in zip(cols, pillars):
         with col:
-            st.metric(label=title, value=pillar)
-            st.caption(f"한자: {hanja}")
+            st.markdown(f"**{title}**")
+            st.markdown(f"### {hanja}")
+            st.caption(f"한글: {pillar}")
+            
+            # 십신 표시
+            if pos == 'day':
+                st.info(f"**일간** ({result['day_stem_hanja']})")
+            else:
+                st.info(f"**십신**: {result['sipsin'][pos]}")
+            
+            # 12운성 표시
+            st.success(f"**12운성**: {result['unsung'][pos]}")
+            
+            # 납음오행 표시
+            st.caption(f"납음: {result['napeum'][pos]}")
+    
+    st.divider()
     
     # 오행 분석
     st.subheader("🌟 오행 분석 (五行)")
@@ -184,6 +261,96 @@ if st.session_state.get('saju_calculated', False):
     for col, (element, count) in zip(element_cols, element_count.items()):
         with col:
             st.metric(label=element, value=f"{count}개")
+    
+    st.divider()
+    
+    # 신살 표시
+    st.subheader("✨ 신살 (神殺)")
+    
+    sinsal_cols = st.columns(2)
+    with sinsal_cols[0]:
+        if result['sinsal']['cheonul']:
+            st.success(f"**천을귀인**: {', '.join(result['sinsal']['cheonul'])}")
+        if result['sinsal']['yeokma']:
+            st.info(f"**역마살**: {', '.join(result['sinsal']['yeokma'])}")
+        if result['sinsal']['dohwa']:
+            st.warning(f"**도화살**: {', '.join(result['sinsal']['dohwa'])}")
+    
+    with sinsal_cols[1]:
+        if result['sinsal']['gongmang']:
+            st.error(f"**공망**: {', '.join(result['sinsal']['gongmang'])}")
+        if result['sinsal']['wonjin']:
+            st.warning(f"**원진**: {', '.join(result['sinsal']['wonjin'])}")
+    
+    st.divider()
+    
+    # 형충회합 표시
+    st.subheader("⚡ 형충회합 (刑沖會合)")
+    
+    hch = result['hyungchunghap']
+    hch_cols = st.columns(3)
+    
+    with hch_cols[0]:
+        if hch['chung']:
+            st.error(f"**충(沖)**: {', '.join(hch['chung'])}")
+        else:
+            st.caption("충(沖): 없음")
+    
+    with hch_cols[1]:
+        if hch['yukhap']:
+            st.success(f"**육합**: {', '.join(hch['yukhap'])}")
+        if hch['samhap']:
+            st.success(f"**삼합**: {', '.join(hch['samhap'])}")
+        if hch['banghap']:
+            st.success(f"**방합**: {', '.join(hch['banghap'])}")
+        if not (hch['yukhap'] or hch['samhap'] or hch['banghap']):
+            st.caption("합(合): 없음")
+    
+    with hch_cols[2]:
+        if hch['hyung']:
+            st.warning(f"**형(刑)**: {', '.join(hch['hyung'])}")
+        else:
+            st.caption("형(刑): 없음")
+    
+    st.divider()
+    
+    # 대운 표시
+    st.subheader("🔮 대운 (大運)")
+    
+    daeun = result['daeun']
+    st.caption(f"**{daeun['start_age']}세부터 시작**, {daeun['direction']}")
+    
+    # 대운표를 DataFrame으로 표시
+    import pandas as pd
+    
+    daeun_data = []
+    for d in daeun['list']:
+        daeun_data.append({
+            '나이': f"{d['age']}~{d['age']+9}세",
+            '간지': d['pillar'],
+            '천간': d['stem'],
+            '지지': d['branch']
+        })
+    
+    df_daeun = pd.DataFrame(daeun_data)
+    st.dataframe(df_daeun, use_container_width=True, hide_index=True)
+    
+    st.divider()
+    
+    # 세운 표시
+    st.subheader("📅 세운 (歲運)")
+    
+    seun = result['seun']
+    
+    # 현재 년도를 강조하여 표시
+    seun_cols = st.columns(4)
+    for i, s in enumerate(seun):
+        col_idx = i % 4
+        with seun_cols[col_idx]:
+            if s['is_current']:
+                st.success(f"**{s['year']}년**\n{s['jiazi']}\n({s['age']}세) ⭐")
+            else:
+                st.text(f"{s['year']}년\n{s['jiazi']}\n({s['age']}세)")
     
     # 음양 분석
     with st.expander("☯️ 음양 분석"):

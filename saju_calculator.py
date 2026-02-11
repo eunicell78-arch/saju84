@@ -5,6 +5,15 @@ Four Pillars (Saju) Calculator Module
 from datetime import datetime
 from typing import Dict, Tuple
 
+# Import new modules
+from sipsin import get_all_sipsin, ELEMENT_MAP as SIPSIN_ELEMENT_MAP
+from sinsal import get_all_sinsal
+from unsung_12 import get_all_unsung
+from napeum import get_all_napeum
+from hyungchunghap import analyze_hyungchunghap
+from daeun import calculate_daeun
+from seun import calculate_seun
+
 # 천간 (Heavenly Stems) - 10개
 HEAVENLY_STEMS = ['갑(甲)', '을(乙)', '병(丙)', '정(丁)', '무(戊)', '기(己)', '경(庚)', '신(辛)', '임(壬)', '계(癸)']
 HEAVENLY_STEMS_HANJA = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
@@ -154,8 +163,8 @@ def get_hour_pillar(date: datetime, day_stem: str) -> Tuple[str, str]:
     return stem, branch
 
 
-def calculate_four_pillars(birth_date: datetime) -> Dict:
-    """사주팔자 계산"""
+def calculate_four_pillars(birth_date: datetime, gender: str = '여') -> Dict:
+    """사주팔자 계산 (전체 정보 포함)"""
     year = birth_date.year
     month = birth_date.month
     
@@ -182,6 +191,50 @@ def calculate_four_pillars(birth_date: datetime) -> Dict:
     stems_yin_yang = [STEM_YIN_YANG[s] for s in stems]
     branches_yin_yang = [BRANCH_YIN_YANG[b] for b in branches]
     
+    # 한자 추출
+    year_stem_hanja = HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(year_stem)]
+    year_branch_hanja = EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(year_branch)]
+    month_stem_hanja = HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(month_stem)]
+    month_branch_hanja = EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(month_branch)]
+    day_stem_hanja = HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(day_stem)]
+    day_branch_hanja = EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(day_branch)]
+    hour_stem_hanja = HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(hour_stem)]
+    hour_branch_hanja = EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(hour_branch)]
+    
+    # 간지 조합
+    year_pillar_hanja = year_stem_hanja + year_branch_hanja
+    month_pillar_hanja = month_stem_hanja + month_branch_hanja
+    day_pillar_hanja = day_stem_hanja + day_branch_hanja
+    hour_pillar_hanja = hour_stem_hanja + hour_branch_hanja
+    
+    # 십신 계산
+    sipsin = get_all_sipsin(day_stem_hanja, year_stem_hanja, month_stem_hanja, hour_stem_hanja)
+    
+    # 12운성 계산
+    unsung = get_all_unsung(day_stem_hanja, year_branch_hanja, month_branch_hanja, 
+                           day_branch_hanja, hour_branch_hanja)
+    
+    # 신살 계산
+    sinsal = get_all_sinsal(day_stem_hanja, day_branch_hanja, day_pillar_hanja,
+                           year_stem_hanja, year_branch_hanja,
+                           month_branch_hanja, hour_branch_hanja)
+    
+    # 납음오행 계산
+    napeum = get_all_napeum(year_pillar_hanja, month_pillar_hanja, 
+                           day_pillar_hanja, hour_pillar_hanja)
+    
+    # 형충회합 계산
+    hyungchunghap = analyze_hyungchunghap(year_branch_hanja, month_branch_hanja,
+                                         day_branch_hanja, hour_branch_hanja)
+    
+    # 대운 계산
+    daeun = calculate_daeun(birth_date, gender, year_stem_hanja, 
+                           month_stem_hanja, month_branch_hanja)
+    
+    # 세운 계산 (현재 년도 기준)
+    current_year = datetime.now().year
+    seun = calculate_seun(year, current_year)
+    
     return {
         'year_pillar': f"{year_stem}{year_branch}",
         'month_pillar': f"{month_stem}{month_branch}",
@@ -200,10 +253,20 @@ def calculate_four_pillars(birth_date: datetime) -> Dict:
         'stems_yin_yang': stems_yin_yang,
         'branches_yin_yang': branches_yin_yang,
         'birth_date': birth_date.strftime('%Y년 %m월 %d일 %H시'),
-        'year_hanja': f"{HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(year_stem)]}{EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(year_branch)]}",
-        'month_hanja': f"{HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(month_stem)]}{EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(month_branch)]}",
-        'day_hanja': f"{HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(day_stem)]}{EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(day_branch)]}",
-        'hour_hanja': f"{HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(hour_stem)]}{EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(hour_branch)]}"
+        'year_hanja': year_pillar_hanja,
+        'month_hanja': month_pillar_hanja,
+        'day_hanja': day_pillar_hanja,
+        'hour_hanja': hour_pillar_hanja,
+        # 새로운 정보들
+        'sipsin': sipsin,
+        'unsung': unsung,
+        'sinsal': sinsal,
+        'napeum': napeum,
+        'hyungchunghap': hyungchunghap,
+        'daeun': daeun,
+        'seun': seun,
+        'gender': gender,
+        'day_stem_hanja': day_stem_hanja
     }
 
 
