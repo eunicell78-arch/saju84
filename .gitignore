@@ -47,5 +47,6 @@ Thumbs.db
 # Logs
 *.log
 
-# Old files
-*.txt
+# Downloaded Saju interpretation results
+사주풀이_*.txt
+*_converted.txt

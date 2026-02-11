@@ -102,6 +102,8 @@ git push origin main
 
 한 번의 풀이당 약 1,000-2,000 tokens 사용 (GPT-4 기준 약 $0.03-0.06)
 
+> ⚠️ **주의**: 위 가격은 참고용이며 실제 가격은 변동될 수 있습니다. 최신 가격은 [OpenAI 공식 가격 페이지](https://openai.com/api/pricing/)에서 확인하세요.
+
 비용을 절감하려면 `app.py`의 `get_saju_interpretation` 함수에서 모델을 변경:
 ```python
 model="gpt-3.5-turbo"  # GPT-4 대신 사용

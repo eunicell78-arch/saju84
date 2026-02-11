@@ -88,7 +88,9 @@ def get_month_pillar(year: int, month: int) -> Tuple[str, str]:
 
 def get_day_pillar(date: datetime) -> Tuple[str, str]:
     """일주 계산 (간지 순환 계산)"""
-    # 기준일: 1900년 1월 1일 = 갑자일
+    # 기준일: 1900년 1월 1일 = 갑진일 (庚辰)로 추정
+    # 주의: 정확한 역법 계산을 위해서는 만세력 데이터베이스를 참조하는 것이 좋습니다
+    # 이 계산은 근사치이며 참고용입니다
     base_date = datetime(1900, 1, 1)
     days_diff = (date - base_date).days
     
