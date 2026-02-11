@@ -56,8 +56,9 @@ def get_daeun_direction(gender: str, year_stem: str) -> str:
 
 def calculate_daeun_start_age(birth_date: datetime, gender: str, year_stem: str, month: int) -> int:
     """
-    대운수 계산 (간단한 근사)
+    대운 시작 나이 계산 (전통 방식)
     
+    3일 = 1년 원칙 적용
     실제로는 정확한 절입일 계산이 필요하지만, 여기서는 근사치 사용
     
     Args:
@@ -118,10 +119,18 @@ def calculate_daeun_start_age(birth_date: datetime, gender: str, year_stem: str,
         # Invalid date (e.g., February 30), use default
         days_diff = 15  # Default to ~5 years for daeun start
     
-    # 3일 = 1년
-    daeun_age = max(1, (days_diff // 3) + 1)
+    # 3일 = 1년 계산 (전통 방식)
+    years = days_diff // 3
+    remaining_days = days_diff % 3
     
-    return daeun_age
+    # 2일 이상이면 반올림하여 1년 추가
+    if remaining_days >= 2:
+        daeun_age = years + 1
+    else:
+        daeun_age = years
+    
+    # 최소 1세
+    return max(1, daeun_age)
 
 
 def generate_daeun(year_stem: str, month_stem: str, year_branch: str, month_branch: str, 
