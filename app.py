@@ -66,6 +66,9 @@ def get_saju_interpretation(saju_result: dict, is_student: bool = False, grade_l
     element_count = get_element_count(saju_result)
     element_str = ", ".join([f"{k}: {v}개" for k, v in element_count.items()])
     
+    # 시주 미상 여부 확인
+    time_unknown = saju_result.get('time_unknown', False)
+    
     # 십신 정보
     sipsin_str = ""
     if 'sipsin' in saju_result:
@@ -158,17 +161,34 @@ def get_saju_interpretation(saju_result: dict, is_student: bool = False, grade_l
 - **피해야 할 분야**
 """
     
+    # 시주 미상 안내 추가
+    time_info = ""
+    if time_unknown:
+        time_info = """
+
+⚠️ **출생 시간 미상**: 년주, 월주, 일주만으로 풀이합니다.
+시주가 없어 시간대별 운세와 일부 세부 정보는 제외되었습니다.
+"""
+    
+    # 풀이 요청사항에 추가할 시간 미상 지시사항
+    time_unknown_instruction = ""
+    if time_unknown:
+        time_unknown_instruction = """
+
+**중요**: 출생 시간을 모르므로 시주(時柱)가 없습니다. 년주, 월주, 일주만으로 풀이해주세요. 시간대별 운세는 제외하고, 3주 기반으로 최대한 상세히 풀이해주세요.
+"""
+    
     prompt = f"""
 당신은 전문 사주 풀이 전문가입니다. 아래 형식에 따라 상세하고 희망적으로 풀이해주세요.
 
 ## 생년월일시
-{saju_result['birth_date']}{student_info}
+{saju_result['birth_date']}{student_info}{time_info}
 
 ## 사주팔자
 - 연주(年柱): {saju_result['year_pillar']} ({saju_result['year_hanja']})
 - 월주(月柱): {saju_result['month_pillar']} ({saju_result['month_hanja']})
 - 일주(日柱): {saju_result['day_pillar']} ({saju_result['day_hanja']})
-- 시주(時柱): {saju_result['hour_pillar']} ({saju_result['hour_hanja']})
+- 시주(時柱): {saju_result['hour_pillar']} ({saju_result['hour_hanja']}){"" if not time_unknown else " (출생 시간 미상)"}
 
 ## 오행 분석
 - 천간: {', '.join(saju_result['stems_elements'])}
@@ -180,16 +200,17 @@ def get_saju_interpretation(saju_result: dict, is_student: bool = False, grade_l
 - 지지: {', '.join(saju_result['branches_yin_yang'])}
 {sipsin_str}{unsung_str}{sinsal_str}{hch_str}{daeun_str}{seun_str}
 
-## 풀이 요청사항
+## 풀이 요청사항{time_unknown_instruction}
 **정확히 아래 형식과 순서에 따라 풀이해주세요:**
 
 ### 1. 사주 구성
 - **생년월일**: {saju_result['birth_date']} (양력 기준)
+{"- **시간**: 미상 (3주 기반 풀이)" if time_unknown else ""}
 - **사주 구성**: 
   * 년주(年柱): {saju_result['year_pillar']} ({saju_result['year_hanja']})
   * 월주(月柱): {saju_result['month_pillar']} ({saju_result['month_hanja']})
   * 일주(日柱): {saju_result['day_pillar']} ({saju_result['day_hanja']})
-  * 시주(時柱): {saju_result['hour_pillar']} ({saju_result['hour_hanja']})
+  * 시주(時柱): {saju_result['hour_pillar']} ({saju_result['hour_hanja']}){"" if not time_unknown else " (출생 시간 미상)"}
 - **일간(日干) 설명**: 일간의 의미와 특성을 설명
 - **오행 분포**: 목/화/토/금/수 각각의 개수와 균형 상태 분석
 
@@ -364,26 +385,40 @@ with col1:
             help="윤달인 경우 체크하세요"
         )
     
-    # 시간 입력 (1분 단위)
-    col_time1, col_time2 = st.columns(2)
-    with col_time1:
-        birth_hour = st.number_input(
-            "시간 (Hour)",
-            min_value=0,
-            max_value=23,
-            value=12,
-            step=1,
-            help="0시~23시 사이 선택"
-        )
-    with col_time2:
-        birth_minute = st.number_input(
-            "분 (Minute)",
-            min_value=0,
-            max_value=59,
-            value=0,
-            step=1,
-            help="0분~59분 사이 선택"
-        )
+    # 시간 모름 체크박스 추가
+    time_unknown = st.checkbox(
+        "⏰ 출생 시간을 모르겠어요",
+        value=False,
+        help="시간을 모르시면 년주, 월주, 일주만으로 풀이합니다."
+    )
+    
+    if time_unknown:
+        st.info("💡 시주(時柱) 없이 3주(年月日)만으로 풀이합니다. 시간을 알면 더 정확한 풀이가 가능합니다.")
+        # 기본 시간 설정 (정오 12시로 설정하되, 시주 계산은 건너뜀)
+        birth_hour = 12
+        birth_minute = 0
+    else:
+        # 시간 입력 (1분 단위)
+        st.write("#### 출생 시간")
+        col_time1, col_time2 = st.columns(2)
+        with col_time1:
+            birth_hour = st.number_input(
+                "시간 (Hour)",
+                min_value=0,
+                max_value=23,
+                value=12,
+                step=1,
+                help="0시~23시 사이 선택"
+            )
+        with col_time2:
+            birth_minute = st.number_input(
+                "분 (Minute)",
+                min_value=0,
+                max_value=59,
+                value=0,
+                step=1,
+                help="0분~59분 사이 선택"
+            )
     
     gender = st.radio(
         "성별",
@@ -441,6 +476,7 @@ with col1:
         st.session_state['gender'] = gender
         st.session_state['is_student'] = (occupation_type == "학생")
         st.session_state['grade_level'] = grade_level if occupation_type == "학생" else ""
+        st.session_state['time_unknown'] = time_unknown
         # 대화 히스토리 초기화 (첫 계산 시에만)
         if 'conversation_history' not in st.session_state:
             st.session_state['conversation_history'] = []
@@ -463,11 +499,16 @@ with col2:
 if st.session_state.get('saju_calculated', False):
     birth_datetime = st.session_state['birth_datetime']
     gender = st.session_state.get('gender', '남')
+    time_unknown = st.session_state.get('time_unknown', False)
     
     with st.spinner("사주팔자를 계산하는 중..."):
-        result = calculate_four_pillars(birth_datetime, gender)
+        result = calculate_four_pillars(birth_datetime, gender, include_hour=not time_unknown)
     
     st.success(f"✅ {result['birth_date']} 출생자의 사주팔자")
+    
+    # 시간 미상 경고 메시지
+    if result.get('time_unknown', False):
+        st.warning("⚠️ 출생 시간을 모르시는 경우입니다. 년주, 월주, 일주만으로 풀이했습니다.")
     
     # 사주팔자 표시
     st.subheader("📊 사주팔자 (四柱八字)")
@@ -482,7 +523,10 @@ if st.session_state.get('saju_calculated', False):
     
     for col, (title, pillar, hanja) in zip(cols, pillars):
         with col:
-            st.metric(label=title, value=pillar)
+            if title == "시주(時柱)" and result.get('time_unknown', False):
+                st.metric(label=title, value=pillar, help="출생 시간을 모르는 경우")
+            else:
+                st.metric(label=title, value=pillar)
             st.caption(f"한자: {hanja}")
     
     # 오행 분석
@@ -492,17 +536,21 @@ if st.session_state.get('saju_calculated', False):
     
     with col1:
         st.write("**천간(天干) 오행:**")
-        for i, (stem, element) in enumerate(zip(['연간', '월간', '일간', '시간'], result['stems_elements'])):
+        stem_labels = ['연간', '월간', '일간', '시간'] if not result.get('time_unknown', False) else ['연간', '월간', '일간']
+        for i, (stem, element) in enumerate(zip(stem_labels, result['stems_elements'])):
             st.write(f"- {stem}: {element}")
     
     with col2:
         st.write("**지지(地支) 오행:**")
-        for i, (branch, element) in enumerate(zip(['연지', '월지', '일지', '시지'], result['branches_elements'])):
+        branch_labels = ['연지', '월지', '일지', '시지'] if not result.get('time_unknown', False) else ['연지', '월지', '일지']
+        for i, (branch, element) in enumerate(zip(branch_labels, result['branches_elements'])):
             st.write(f"- {branch}: {element}")
     
     # 오행 개수 통계
     element_count = get_element_count(result)
     st.write("**오행 개수:**")
+    if result.get('time_unknown', False):
+        st.caption("※ 시주가 없어 오행 분포가 불완전할 수 있습니다.")
     element_cols = st.columns(5)
     for col, (element, count) in zip(element_cols, element_count.items()):
         with col:
