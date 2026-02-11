@@ -3,7 +3,7 @@
 Saju (Four Pillars) Calculator with AI Interpretation
 """
 import streamlit as st
-from datetime import datetime, time
+from datetime import datetime
 from saju_calculator import calculate_four_pillars, get_element_count
 
 # OpenAI 임포트 (선택적)
@@ -140,19 +140,25 @@ def get_saju_interpretation(saju_result: dict, is_student: bool = False, grade_l
 - 현재: {current['년도']}년 {current['간지']} ({current['나이']}세)
 """
     
-    # 학생 모드 구분
+    # 학생 모드에 따른 추가 섹션
+    student_info = ""
+    student_sections = ""
     if is_student:
         student_info = f"\n\n## 학생 정보\n- 학년: {grade_level}"
-        job_section = """### 7. 학업운 및 진로
-학업 성취도, 공부 방법, 적합한 전공 및 진로 방향을 분석해주세요. 과외나 학원 추천도 포함해주세요."""
-    else:
-        student_info = ""
-        job_section = """### 7. 직업운
-적합한 직업 분야와 업무 스타일을 분석해주세요."""
+        student_sections = """
+### 8. 향후 3년간 학업운 및 시험운 흐름
+- **1년차 학업운 및 시험운**: 주요 학업 흐름, 중요 시험 시기, 집중해야 할 과목
+- **2년차 학업운 및 시험운**: 주요 학업 흐름, 중요 시험 시기, 집중해야 할 과목
+- **3년차 학업운 및 시험운**: 주요 학업 흐름, 중요 시험 시기, 집중해야 할 과목
+
+### 9. 진로적성 및 전공추천
+- **타고난 적성 분석**: 이과/문과/예체능 중 어느 쪽에 적합한지
+- **추천 전공**: 구체적인 전공 3-5개 제시
+- **추천 진로 방향**: 장기적인 진로 방향과 발전 가능성
+"""
     
     prompt = f"""
-당신은 30년 경력의 전문 사주명리학자입니다. 
-다음 사주팔자를 깊이있고 전문적으로 풀이해주세요.
+당신은 전문 사주 풀이 전문가입니다. 아래 형식에 따라 상세하고 희망적으로 풀이해주세요.
 
 ## 생년월일시
 {saju_result['birth_date']}{student_info}
@@ -174,49 +180,82 @@ def get_saju_interpretation(saju_result: dict, is_student: bool = False, grade_l
 {sipsin_str}{unsung_str}{sinsal_str}{hch_str}{daeun_str}{seun_str}
 
 ## 풀이 요청사항
-다음 항목들을 구조화된 형식으로 풀이해주세요:
+**정확히 아래 형식과 순서에 따라 풀이해주세요:**
 
-### 1. 전체 운세
-사주 전반적인 운세와 일간의 강약, 사주 구조의 특징을 분석해주세요.
+### 1. 사주 구성
+- **생년월일**: {saju_result['birth_date']} (양력 기준)
+- **사주 구성**: 
+  * 년주(年柱): {saju_result['year_pillar']} ({saju_result['year_hanja']})
+  * 월주(月柱): {saju_result['month_pillar']} ({saju_result['month_hanja']})
+  * 일주(日柱): {saju_result['day_pillar']} ({saju_result['day_hanja']})
+  * 시주(時柱): {saju_result['hour_pillar']} ({saju_result['hour_hanja']})
+- **일간(日干) 설명**: 일간의 의미와 특성을 설명
+- **오행 분포**: 목/화/토/금/수 각각의 개수와 균형 상태 분석
 
-### 2. 성격 및 기질
-십신 배치를 바탕으로 성격, 재능, 기질, 성향을 설명해주세요.
+### 2. 주요 귀인과 살성
+- **길신(吉神) 풀이**: 천을귀인, 문창귀인 등 긍정적인 신살과 그 영향
+- **흉살(凶殺) 풀이**: 백호살, 역마살 등 주의해야 할 살과 그 영향
+- 각 귀인과 살이 인생에 미치는 **구체적 영향** 설명
 
-### 3. 금전운
-재물운, 재테크 성향, 돈 관리 능력을 분석해주세요.
+### 3. 성격 및 기질 분석
+- **외향/내향 성향**: 어느 쪽에 가까운지
+- **이성/감성 비율**: 논리적인지 감성적인지
+- **주도성, 분석력, 감수성, 리더십** 등의 특성
+- **대인관계 스타일**: 타인과 어떻게 소통하는지
 
-### 4. 건강운
-건강 관련 주의사항과 체질, 취약 부위를 설명해주세요.
+### 4. 평생운세
+- **유년기 (0-20세)**: 주요 운세와 특징
+- **청년기 (20-40세)**: 주요 운세와 전환점
+- **중년기 (40-60세)**: 주요 운세와 성취
+- **노년기 (60세 이후)**: 주요 운세와 안정
+- 각 시기의 주요 운세와 전환점을 상세히 설명
 
-### 5. 대인관계운
-인간관계 스타일, 대인운, 사회성을 분석해주세요.
+### 5. 진로와 적성
+- **타고난 재능과 강점**: 어떤 분야에 재능이 있는지
+- **적성 직업 추천**: 구체적으로 5-7개의 직업 제시
+- **추천 분야**: 기술직, 창작, 관리직, 서비스직 등 적합한 분야
+- **피해야 할 직업 유형**: 맞지 않는 직업 유형과 이유
 
-### 6. 연애운/결혼운
-연애 운세, 배우자운, 이성관계를 해석해주세요.
+### 6. 올해 운세
+- **월별 세부 운세**: 1월부터 12월까지 각 달의 운세를 간략히 설명
+  * 1월: 
+  * 2월:
+  * 3월:
+  * 4월:
+  * 5월:
+  * 6월:
+  * 7월:
+  * 8월:
+  * 9월:
+  * 10월:
+  * 11월:
+  * 12월:
+- **재물운**: 수입, 투자, 지출 주의사항
+- **건강운**: 주의해야 할 건강 이슈
+- **올해 중요한 시기와 조심할 시기**
 
-{job_section}
+### 7. 한 줄 총평 및 핵심 키워드
+- **총평**: 이 사람을 대표하는 성향 요약 (1-2문장, **타고난 장점을 강조**하여 **희망적인 메시지** 전달)
+- **핵심 키워드**: 3-5개 (예: "창의력", "리더십", "성실함")
+{student_sections}
 
-### 8. 가족운
-가족과의 관계, 부모운, 자녀운을 분석해주세요.
-
-### 9. 올해의 운세
-현재 대운과 세운을 바탕으로 올해의 흐름과 주요 운세를 해석해주세요.
-
-### 10. 조언 및 개선 방향
-오행 균형을 위한 용신 제시 및 전반적인 삶의 방향과 개선점을 조언해주세요.
-
-한국어로 정중하고 이해하기 쉽게 설명해주세요. 각 섹션은 제목(###)을 포함하여 구분해주세요.
+**중요 지침:**
+1. 모든 내용은 한국어로 작성
+2. 긍정적이고 희망적인 톤 유지
+3. 각 섹션을 명확히 구분하여 작성
+4. 월별 운세는 12개월 모두 포함
+5. 타고난 장점과 가능성을 강조
 """
     
     try:
         response = openai.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "당신은 전문 사주명리학자입니다. 사주팔자를 깊이있고 정확하게 풀이합니다."},
+                {"role": "system", "content": "당신은 전문 사주명리학자입니다. 사주팔자를 깊이 있고 정확하게 풀이하며, 희망적이고 긍정적인 메시지를 전달합니다."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
-            max_tokens=3000
+            max_tokens=4000
         )
         
         return response.choices[0].message.content
@@ -315,10 +354,26 @@ with col1:
         max_value=datetime(2100, 12, 31)
     )
     
-    birth_time = st.time_input(
-        "출생 시간",
-        value=time(12, 0)
-    )
+    # 시간 입력 (1분 단위)
+    col_time1, col_time2 = st.columns(2)
+    with col_time1:
+        birth_hour = st.number_input(
+            "시간 (Hour)",
+            min_value=0,
+            max_value=23,
+            value=12,
+            step=1,
+            help="0시~23시 사이 선택"
+        )
+    with col_time2:
+        birth_minute = st.number_input(
+            "분 (Minute)",
+            min_value=0,
+            max_value=59,
+            value=0,
+            step=1,
+            help="0분~59분 사이 선택"
+        )
     
     gender = st.radio(
         "성별",
@@ -346,8 +401,6 @@ with col1:
     year = birth_date.year
     month = birth_date.month
     day = birth_date.day
-    birth_hour = birth_time.hour
-    birth_minute = birth_time.minute
     
     if st.button("🔮 사주팔자 계산하기", type="primary", use_container_width=True):
         # 음력인 경우 양력으로 변환
