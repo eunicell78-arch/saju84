@@ -153,7 +153,7 @@ def get_hour_pillar(date: datetime, day_stem: str) -> Tuple[str, str]:
     total_minutes = hour * 60 + minute
     
     # 각 시는 30분 전부터 시작하므로 30분을 더함
-    adjusted_minutes = (total_minutes + 30) % 1440  # 1440 = 24시간 (60분 * 24시간)
+    adjusted_minutes = (total_minutes + 30) % 1440  # 1440분 = 24시간 (60분 * 24시간)
     adjusted_hour = adjusted_minutes // 60
     
     # 시지(時支) 결정
@@ -172,7 +172,7 @@ def get_hour_pillar(date: datetime, day_stem: str) -> Tuple[str, str]:
         11: '해(亥)'   # 21:30 ~ 23:30
     }
     
-    branch_index = adjusted_hour // 2
+    branch_index = adjusted_hour // 2  # 2시간 단위로 지지 결정 (자시=0, 축시=1, ...)
     branch = hour_branch_map.get(branch_index, '자(子)')
     
     # 시간(時干) 계산 (일간에 따라 달라짐)
