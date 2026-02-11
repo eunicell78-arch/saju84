@@ -54,7 +54,9 @@ def get_saju_interpretation(saju_result: dict) -> str:
         AI가 생성한 사주 풀이 텍스트
     """
     # API 키 확인
-    if "OPENAI_API_KEY" not in st.secrets:
+    try:
+        api_key = st.secrets["OPENAI_API_KEY"]
+    except Exception:
         st.error("⚠️ OpenAI API 키가 설정되지 않았습니다.")
         st.info("""
         **Streamlit Cloud 배포 시:**
@@ -72,7 +74,7 @@ def get_saju_interpretation(saju_result: dict) -> str:
     
     try:
         # OpenAI 클라이언트 초기화
-        client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+        client = OpenAI(api_key=api_key)
         
         # 프롬프트 생성
         element_summary = "\n".join([f"  - {k}: {v}개" for k, v in saju_result['element_count'].items()])
@@ -264,9 +266,16 @@ if 'saju_result' in st.session_state:
     # AI 풀이 버튼
     st.markdown("---")
     
+    # Check if secrets exist and have the API key
+    has_api_key = False
+    try:
+        has_api_key = "OPENAI_API_KEY" in st.secrets
+    except Exception:
+        has_api_key = False
+    
     if not OPENAI_AVAILABLE:
         st.warning("⚠️ OpenAI 라이브러리가 설치되지 않았습니다. `pip install openai`를 실행하세요.")
-    elif "OPENAI_API_KEY" not in st.secrets:
+    elif not has_api_key:
         st.warning("⚠️ OpenAI API 키가 설정되지 않았습니다. Secrets 설정이 필요합니다.")
         with st.expander("API 키 설정 방법 보기"):
             st.markdown("""
