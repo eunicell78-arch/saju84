@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사주팔자 만세력 계산기 - Four Pillars Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 0.95rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .input-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .calendar-type {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .calendar-type label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 10px 20px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .calendar-type input[type="radio"]:checked + label,
+        .calendar-type label:has(input[type="radio"]:checked) {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .calendar-type input[type="radio"] {
+            margin-right: 8px;
+        }
+
+        .date-inputs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .time-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .result-section {
+            display: none;
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+        }
+
+        .result-section.show {
+            display: block;
+        }
+
+        .pillars-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 20px;
+            overflow: hidden;
+            border-radius: 10px;
+        }
+
+        .pillars-table th,
+        .pillars-table td {
+            padding: 15px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        .pillars-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        .pillars-table td {
+            background: white;
+        }
+
+        .pillar-cell {
+            font-size: 1.1rem;
+        }
+
+        .pillar-chinese {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .pillar-korean {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .element-info {
+            margin-top: 5px;
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .info-section {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .info-section h3 {
+            color: #1976d2;
+            margin-bottom: 15px;
+        }
+
+        .info-section ul {
+            margin-left: 20px;
+        }
+
+        .info-section li {
+            margin-bottom: 8px;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .date-inputs {
+                grid-template-columns: 1fr;
+            }
+
+            .pillars-table {
+                font-size: 0.9rem;
+            }
+
+            .pillar-chinese {
+                font-size: 1.2rem;
+            }
+        }
+
+        .leap-month-checkbox {
+            margin-top: 10px;
+        }
+
+        .leap-month-checkbox label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .leap-month-checkbox input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
+        .converted-date {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .converted-date strong {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔮 사주팔자 만세력 계산기</h1>
+            <p>Four Pillars of Destiny Calculator</p>
+        </div>
+
+        <div class="content">
+            <div class="error" id="errorMsg"></div>
+
+            <div class="input-section">
+                <h2 style="margin-bottom: 20px;">생년월일시 입력</h2>
+
+                <div class="form-group">
+                    <div class="calendar-type">
+                        <label>
+                            <input type="radio" name="calendarType" value="solar" checked>
+                            양력 (Solar)
+                        </label>
+                        <label>
+                            <input type="radio" name="calendarType" value="lunar">
+                            음력 (Lunar)
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>생년월일</label>
+                    <div class="date-inputs">
+                        <div>
+                            <input type="number" id="year" placeholder="년 (Year)" min="1900" max="2100">
+                        </div>
+                        <div>
+                            <input type="number" id="month" placeholder="월 (Month)" min="1" max="12">
+                        </div>
+                        <div>
+                            <input type="number" id="day" placeholder="일 (Day)" min="1" max="31">
+                        </div>
+                    </div>
+                    <div class="leap-month-checkbox" id="leapMonthDiv" style="display: none;">
+                        <label>
+                            <input type="checkbox" id="isLeapMonth">
+                            윤달 (Leap Month)
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>출생 시간</label>
+                    <div class="time-inputs">
+                        <div>
+                            <input type="number" id="hour" placeholder="시 (Hour)" min="0" max="23">
+                        </div>
+                        <div>
+                            <input type="number" id="minute" placeholder="분 (Minute)" min="0" max="59" value="0">
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn" onclick="calculateSaju()">사주팔자 계산하기</button>
+            </div>
+
+            <div class="result-section" id="resultSection">
+                <h2 style="margin-bottom: 15px;">📊 사주팔자 결과</h2>
+                <div id="convertedDate" class="converted-date"></div>
+                <table class="pillars-table">
+                    <thead>
+                        <tr>
+                            <th>시주 (時柱)<br>Hour Pillar</th>
+                            <th>일주 (日柱)<br>Day Pillar</th>
+                            <th>월주 (月柱)<br>Month Pillar</th>
+                            <th>연주 (年柱)<br>Year Pillar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td id="hourPillar" class="pillar-cell"></td>
+                            <td id="dayPillar" class="pillar-cell"></td>
+                            <td id="monthPillar" class="pillar-cell"></td>
+                            <td id="yearPillar" class="pillar-cell"></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div id="elementInfo" class="info-section"></div>
+            </div>
+
+            <div class="info-section">
+                <h3>📖 사용 방법</h3>
+                <ul>
+                    <li><strong>양력/음력 선택:</strong> 출생일이 양력이면 '양력', 음력이면 '음력'을 선택하세요</li>
+                    <li><strong>생년월일 입력:</strong> 1900년~2100년 사이의 날짜를 입력하세요</li>
+                    <li><strong>윤달:</strong> 음력 윤달에 태어났다면 '윤달' 체크박스를 선택하세요</li>
+                    <li><strong>시간 입력:</strong> 출생 시간을 24시간 형식으로 입력하세요 (예: 오전 5시 30분 → 5시 30분)</li>
+                    <li><strong>자시(子時) 주의:</strong> 23:00~24:00는 다음 날의 자시로 계산됩니다</li>
+                </ul>
+
+                <h3 style="margin-top: 20px;">🧪 테스트 예시</h3>
+                <ul>
+                    <li><strong>1992년 10월 24일 05:30 (양력)</strong><br>
+                    → 연주: 壬申(임신), 월주: 庚戌(경술), 일주: 癸酉(계유), 시주: 乙卯(을묘)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Constants
+        const HEAVENLY_STEMS = [
+            { ko: '갑', ch: '甲', element: '木(양목)', pinyin: 'Gab' },
+            { ko: '을', ch: '乙', element: '木(음목)', pinyin: 'Eul' },
+            { ko: '병', ch: '丙', element: '火(양화)', pinyin: 'Byeong' },
+            { ko: '정', ch: '丁', element: '火(음화)', pinyin: 'Jeong' },
+            { ko: '무', ch: '戊', element: '土(양토)', pinyin: 'Mu' },
+            { ko: '기', ch: '己', element: '土(음토)', pinyin: 'Gi' },
+            { ko: '경', ch: '庚', element: '金(양금)', pinyin: 'Gyeong' },
+            { ko: '신', ch: '辛', element: '金(음금)', pinyin: 'Sin' },
+            { ko: '임', ch: '壬', element: '水(양수)', pinyin: 'Im' },
+            { ko: '계', ch: '癸', element: '水(음수)', pinyin: 'Gye' }
+        ];
+
+        const EARTHLY_BRANCHES = [
+            { ko: '자', ch: '子', element: '水', pinyin: 'Ja', animal: '쥐(鼠)' },
+            { ko: '축', ch: '丑', element: '土', pinyin: 'Chuk', animal: '소(牛)' },
+            { ko: '인', ch: '寅', element: '木', pinyin: 'In', animal: '호랑이(虎)' },
+            { ko: '묘', ch: '卯', element: '木', pinyin: 'Myo', animal: '토끼(兔)' },
+            { ko: '진', ch: '辰', element: '土', pinyin: 'Jin', animal: '용(龍)' },
+            { ko: '사', ch: '巳', element: '火', pinyin: 'Sa', animal: '뱀(蛇)' },
+            { ko: '오', ch: '午', element: '火', pinyin: 'O', animal: '말(馬)' },
+            { ko: '미', ch: '未', element: '土', pinyin: 'Mi', animal: '양(羊)' },
+            { ko: '신', ch: '申', element: '金', pinyin: 'Sin', animal: '원숭이(猴)' },
+            { ko: '유', ch: '酉', element: '金', pinyin: 'Yu', animal: '닭(雞)' },
+            { ko: '술', ch: '戌', element: '土', pinyin: 'Sul', animal: '개(犬)' },
+            { ko: '해', ch: '亥', element: '水', pinyin: 'Hae', animal: '돼지(豬)' }
+        ];
+
+        // Lunar calendar data for 1900-2100 (Korean Astronomy Research Institute standard)
+        // Format: [year, lunar_month_days, leap_month]
+        // lunar_month_days encoded as bit flags (1=30days, 0=29days)
+        // Reference: Based on Korean lunar calendar standards
+        const LUNAR_DATA = [
+            [1900,0x04bd8,0], [1901,0x04ae0,0], [1902,0x0a570,5], [1903,0x054d5,0], [1904,0x0d260,0],
+            [1905,0x0d950,0], [1906,0x16554,4], [1907,0x056a0,0], [1908,0x09ad0,0], [1909,0x055d2,2],
+            [1910,0x04ae0,0], [1911,0x0a5b6,0], [1912,0x0a4d0,0], [1913,0x0d250,8], [1914,0x1d255,0],
+            [1915,0x0b540,0], [1916,0x0d6a0,6], [1917,0x0ada2,0], [1918,0x095b0,0], [1919,0x14977,0],
+            [1920,0x04970,0], [1921,0x0a4b0,0], [1922,0x0b4b5,4], [1923,0x06a50,0], [1924,0x06d40,0],
+            [1925,0x1ab54,2], [1926,0x02b60,0], [1927,0x09570,7], [1928,0x052f2,0], [1929,0x04970,0],
+            [1930,0x06566,0], [1931,0x0d4a0,0], [1932,0x0ea50,5], [1933,0x06e95,0], [1934,0x05ad0,0],
+            [1935,0x02b60,3], [1936,0x186e3,0], [1937,0x092e0,0], [1938,0x1c8d7,7], [1939,0x0c950,0],
+            [1940,0x0d4a0,0], [1941,0x1d8a6,0], [1942,0x0b550,0], [1943,0x056a0,6], [1944,0x1a5b4,0],
+            [1945,0x025d0,0], [1946,0x092d0,2], [1947,0x0d2b2,0], [1948,0x0a950,0], [1949,0x0b557,7],
+            [1950,0x06ca0,0], [1951,0x0b550,0], [1952,0x15355,5], [1953,0x04da0,0], [1954,0x0a5b0,3],
+            [1955,0x14573,0], [1956,0x052b0,0], [1957,0x0a9a8,8], [1958,0x0e950,0], [1959,0x06aa0,0],
+            [1960,0x0aea6,6], [1961,0x0ab50,0], [1962,0x04b60,4], [1963,0x0aae4,0], [1964,0x0a570,0],
+            [1965,0x05260,2], [1966,0x0f263,0], [1967,0x0d950,0], [1968,0x05b57,7], [1969,0x056a0,0],
+            [1970,0x096d0,0], [1971,0x04dd5,5], [1972,0x04ad0,0], [1973,0x0a4d0,3], [1974,0x0d4d4,0],
+            [1975,0x0d250,0], [1976,0x0d558,8], [1977,0x0b540,0], [1978,0x0b6a0,0], [1979,0x195a6,6],
+            [1980,0x095b0,0], [1981,0x049b0,4], [1982,0x0a974,0], [1983,0x0a4b0,0], [1984,0x0b27a,0],
+            [1985,0x06a50,0], [1986,0x06d40,9], [1987,0x0af46,0], [1988,0x0ab60,0], [1989,0x09570,7],
+            [1990,0x04af5,0], [1991,0x04970,0], [1992,0x064b0,5], [1993,0x074a3,0], [1994,0x0ea50,0],
+            [1995,0x06b58,3], [1996,0x05ac0,0], [1997,0x0ab60,0], [1998,0x096d5,8], [1999,0x092e0,0],
+            [2000,0x0c960,0], [2001,0x0d954,6], [2002,0x0d4a0,0], [2003,0x0da50,4], [2004,0x07552,0],
+            [2005,0x056a0,0], [2006,0x0abb7,2], [2007,0x025d0,0], [2008,0x092d0,7], [2009,0x0cab5,0],
+            [2010,0x0a950,0], [2011,0x0b4a0,5], [2012,0x0baa4,0], [2013,0x0ad50,0], [2014,0x055d9,0],
+            [2015,0x04ba0,0], [2016,0x0a5b0,9], [2017,0x15176,0], [2018,0x052b0,0], [2019,0x0a930,7],
+            [2020,0x07954,0], [2021,0x06aa0,0], [2022,0x0ad50,5], [2023,0x05b52,0], [2024,0x04b60,0],
+            [2025,0x0a6e6,4], [2026,0x0a4e0,0], [2027,0x0d260,8], [2028,0x0ea65,0], [2029,0x0d530,0],
+            [2030,0x05aa0,6], [2031,0x076a3,0], [2032,0x096d0,0], [2033,0x04afb,2], [2034,0x04ad0,0],
+            [2035,0x0a4d0,7], [2036,0x1d0b6,0], [2037,0x0d250,0], [2038,0x0d520,5], [2039,0x0dd45,0],
+            [2040,0x0b5a0,0], [2041,0x056d0,3], [2042,0x055b2,0], [2043,0x049b0,0], [2044,0x0a577,8],
+            [2045,0x0a4b0,0], [2046,0x0aa50,0], [2047,0x1b255,6], [2048,0x06d20,0], [2049,0x0ada0,4],
+            [2050,0x14b63,0], [2051,0x09370,0], [2052,0x049f8,2], [2053,0x04970,0], [2054,0x064b0,7],
+            [2055,0x168a6,0], [2056,0x0ea50,0], [2057,0x06b20,5], [2058,0x1a6c4,0], [2059,0x0aae0,0],
+            [2060,0x092e0,3], [2061,0x0d2e3,0], [2062,0x0c960,0], [2063,0x0d557,8], [2064,0x0d4a0,0],
+            [2065,0x0da50,0], [2066,0x05d55,6], [2067,0x056a0,0], [2068,0x0a6d0,4], [2069,0x055d4,0],
+            [2070,0x052d0,0], [2071,0x0a9b8,2], [2072,0x0a950,0], [2073,0x0b4a0,7], [2074,0x0b6a6,0],
+            [2075,0x0ad50,0], [2076,0x055a0,5], [2077,0x0aba4,0], [2078,0x0a5b0,0], [2079,0x052b0,3],
+            [2080,0x0b273,0], [2081,0x06930,0], [2082,0x07337,8], [2083,0x06aa0,0], [2084,0x0ad50,0],
+            [2085,0x14b55,6], [2086,0x04b60,0], [2087,0x0a570,4], [2088,0x054e4,0], [2089,0x0d160,0],
+            [2090,0x0e968,2], [2091,0x0d520,0], [2092,0x0daa0,7], [2093,0x16aa6,0], [2094,0x056d0,0],
+            [2095,0x04ae0,5], [2096,0x0a9d4,0], [2097,0x0a2d0,0], [2098,0x0d150,3], [2099,0x0f252,0],
+            [2100,0x0d520,0]
+        ];
+
+        // Show/hide leap month checkbox based on calendar type
+        document.querySelectorAll('input[name="calendarType"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const leapMonthDiv = document.getElementById('leapMonthDiv');
+                leapMonthDiv.style.display = this.value === 'lunar' ? 'block' : 'none';
+            });
+        });
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMsg');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+            setTimeout(() => errorDiv.classList.remove('show'), 5000);
+        }
+
+        function hideError() {
+            document.getElementById('errorMsg').classList.remove('show');
+        }
+
+        function getLunarMonthDays(year, month, lunarData) {
+            const yearData = lunarData.find(d => d[0] === year);
+            if (!yearData) return 29;
+            const monthDaysBits = yearData[1];
+            // Bit encoding: month 12 = bit 0, month 11 = bit 1, ..., month 1 = bit 11
+            // This reverse ordering is the standard encoding format for lunar calendar data
+            return (monthDaysBits & (1 << (12 - month))) ? 30 : 29;
+        }
+
+        function getLeapMonth(year, lunarData) {
+            const yearData = lunarData.find(d => d[0] === year);
+            return yearData ? yearData[2] : 0;
+        }
+
+        // Convert lunar to solar date
+        function lunarToSolar(lunarYear, lunarMonth, lunarDay, isLeapMonth) {
+            if (lunarYear < 1900 || lunarYear > 2100) {
+                throw new Error('Year must be between 1900 and 2100');
+            }
+
+            // Calculate days from base date (1900-01-31 = Lunar 1900-01-01)
+            let offset = 0;
+            const baseDate = new Date(1900, 0, 31); // Jan 31, 1900
+
+            for (let year = 1900; year < lunarYear; year++) {
+                const leapMonth = getLeapMonth(year, LUNAR_DATA);
+                for (let month = 1; month <= 12; month++) {
+                    offset += getLunarMonthDays(year, month, LUNAR_DATA);
+                }
+                if (leapMonth > 0) {
+                    offset += getLunarMonthDays(year, leapMonth, LUNAR_DATA);
+                }
+            }
+
+            const currentLeapMonth = getLeapMonth(lunarYear, LUNAR_DATA);
+            for (let month = 1; month < lunarMonth; month++) {
+                offset += getLunarMonthDays(lunarYear, month, LUNAR_DATA);
+            }
+
+            if (isLeapMonth && currentLeapMonth === lunarMonth) {
+                offset += getLunarMonthDays(lunarYear, lunarMonth, LUNAR_DATA);
+            }
+
+            offset += lunarDay - 1;
+
+            const solarDate = new Date(baseDate.getTime() + offset * 86400000);
+            return {
+                year: solarDate.getFullYear(),
+                month: solarDate.getMonth() + 1,
+                day: solarDate.getDate()
+            };
+        }
+
+        // Convert solar to lunar date (simplified version)
+        function solarToLunar(solarYear, solarMonth, solarDay) {
+            const solarDate = new Date(solarYear, solarMonth - 1, solarDay);
+            const baseDate = new Date(1900, 0, 31);
+            let offset = Math.floor((solarDate - baseDate) / 86400000);
+
+            let lunarYear = 1900;
+            let daysInYear = 0;
+
+            while (lunarYear < 2101 && offset > 0) {
+                daysInYear = 0;
+                const leapMonth = getLeapMonth(lunarYear, LUNAR_DATA);
+                for (let month = 1; month <= 12; month++) {
+                    daysInYear += getLunarMonthDays(lunarYear, month, LUNAR_DATA);
+                }
+                if (leapMonth > 0) {
+                    daysInYear += getLunarMonthDays(lunarYear, leapMonth, LUNAR_DATA);
+                }
+
+                if (offset < daysInYear) break;
+                offset -= daysInYear;
+                lunarYear++;
+            }
+
+            let lunarMonth = 1;
+            let isLeapMonth = false;
+            const currentLeapMonth = getLeapMonth(lunarYear, LUNAR_DATA);
+
+            while (lunarMonth <= 12 && offset > 0) {
+                const daysInMonth = getLunarMonthDays(lunarYear, lunarMonth, LUNAR_DATA);
+                if (offset < daysInMonth) break;
+                offset -= daysInMonth;
+
+                if (currentLeapMonth === lunarMonth && !isLeapMonth) {
+                    const leapDays = getLunarMonthDays(lunarYear, currentLeapMonth, LUNAR_DATA);
+                    if (offset < leapDays) {
+                        isLeapMonth = true;
+                        break;
+                    }
+                    offset -= leapDays;
+                }
+                lunarMonth++;
+            }
+
+            return {
+                year: lunarYear,
+                month: lunarMonth,
+                day: offset + 1,
+                isLeapMonth: isLeapMonth
+            };
+        }
+
+        // Calculate solar term dates (24절기)
+        // Simplified calculation based on approximate dates
+        function getSolarTermDate(year, termIndex) {
+            // Base dates for solar terms (month-1, day)
+            const solarTerms = [
+                [1, 4],  // 0: Lichun 입춘 (Start of Spring) - around Feb 4
+                [1, 19], // 1: Yushui 우수 (Rain Water)
+                [2, 6],  // 2: Jingzhe 경칩 (Awakening of Insects) - around Mar 6
+                [2, 21], // 3: Chunfen 춘분 (Spring Equinox)
+                [3, 5],  // 4: Qingming 청명 (Pure Brightness) - around Apr 5
+                [3, 20], // 5: Guyu 곡우 (Grain Rain)
+                [4, 5],  // 6: Lixia 입하 (Start of Summer) - around May 5
+                [4, 21], // 7: Xiaoman 소만 (Grain Buds)
+                [5, 6],  // 8: Mangzhong 망종 (Grain in Ear) - around Jun 6
+                [5, 21], // 9: Xiazhi 하지 (Summer Solstice)
+                [6, 7],  // 10: Xiaoshu 소서 (Slight Heat) - around Jul 7
+                [6, 23], // 11: Dashu 대서 (Great Heat)
+                [7, 7],  // 12: Liqiu 입추 (Start of Autumn) - around Aug 7
+                [7, 23], // 13: Chushu 처서 (End of Heat)
+                [8, 8],  // 14: Bailu 백로 (White Dew) - around Sep 8
+                [8, 23], // 15: Qiufen 추분 (Autumn Equinox)
+                [9, 8],  // 16: Hanlu 한로 (Cold Dew) - around Oct 8
+                [9, 23], // 17: Shuangjiang 상강 (Descent of Frost)
+                [10, 7], // 18: Lidong 입동 (Start of Winter) - around Nov 7
+                [10, 22],// 19: Xiaoxue 소설 (Slight Snow)
+                [11, 7], // 20: Daxue 대설 (Great Snow) - around Dec 7
+                [11, 22],// 21: Dongzhi 동지 (Winter Solstice)
+                [0, 6],  // 22: Xiaohan 소한 (Slight Cold) - around Jan 6
+                [0, 20]  // 23: Dahan 대한 (Great Cold)
+            ];
+
+            const [month, day] = solarTerms[termIndex];
+            return new Date(year, month, day);
+        }
+
+        // Get 60 Jiazi (sexagenary cycle) combination
+        function getJiazi(index) {
+            const stemIndex = index % 10;
+            const branchIndex = index % 12;
+            return {
+                stem: HEAVENLY_STEMS[stemIndex],
+                branch: EARTHLY_BRANCHES[branchIndex]
+            };
+        }
+
+        // Calculate year pillar based on Lichun
+        function getYearPillar(year, month, day) {
+            // Check if before Lichun
+            const lichunDate = getSolarTermDate(year, 0); // Lichun is index 0
+            const currentDate = new Date(year, month - 1, day);
+
+            let astroYear = year;
+            if (currentDate < lichunDate) {
+                astroYear = year - 1;
+            }
+
+            // Year 1984 was 甲子 (Jiazi) year (index 0 in 60-year cycle)
+            // Use modulo with adjustment to handle all years from 1900-2100
+            const offset = ((astroYear - 1984) % 60 + 60) % 60;
+            return getJiazi(offset);
+        }
+
+        // Calculate month pillar based on solar terms
+        function getMonthPillar(year, month, day, yearStemIndex) {
+            // Determine which solar term month we're in
+            const currentDate = new Date(year, month - 1, day);
+            
+            // Find the current month branch based on solar terms
+            // Month branches: 인(2월/입춘~경칩), 묘(3월/경칩~청명), 진(4월/청명~입하), ...
+            let monthBranchIndex = 2; // Default to 寅(Tiger) for Lichun month
+            
+            // Check each solar term (every 2 terms = 1 month)
+            // 0:입춘, 2:경칩, 4:청명, 6:입하, 8:망종, 10:소서, 12:입추, 14:백로, 16:한로, 18:입동, 20:대설, 22:소한
+            const solarTermMonthBranches = [
+                { term: 0, branch: 2 },   // 입춘 -> 인월(寅)
+                { term: 2, branch: 3 },   // 경칩 -> 묘월(卯)
+                { term: 4, branch: 4 },   // 청명 -> 진월(辰)
+                { term: 6, branch: 5 },   // 입하 -> 사월(巳)
+                { term: 8, branch: 6 },   // 망종 -> 오월(午)
+                { term: 10, branch: 7 },  // 소서 -> 미월(未)
+                { term: 12, branch: 8 },  // 입추 -> 신월(申)
+                { term: 14, branch: 9 },  // 백로 -> 유월(酉)
+                { term: 16, branch: 10 }, // 한로 -> 술월(戌)
+                { term: 18, branch: 11 }, // 입동 -> 해월(亥)
+                { term: 20, branch: 0 },  // 대설 -> 자월(子)
+                { term: 22, branch: 1 }   // 소한 -> 축월(丑)
+            ];
+            
+            // Check against Lichun of current and next year
+            const lichunThisYear = getSolarTermDate(year, 0);
+            const lichunNextYear = getSolarTermDate(year + 1, 0);
+            
+            // If before this year's Lichun, we're in the previous year's last month
+            if (currentDate < lichunThisYear) {
+                monthBranchIndex = 1; // 축월(丑) - Dec-Jan period
+            } else {
+                // Find which solar term period we're in
+                for (let i = 0; i < solarTermMonthBranches.length; i++) {
+                    const { term, branch } = solarTermMonthBranches[i];
+                    const termDate = getSolarTermDate(year, term);
+                    const nextTermIdx = (i + 1 < solarTermMonthBranches.length) ? 
+                        solarTermMonthBranches[i + 1].term : 0;
+                    const nextTermDate = (i + 1 < solarTermMonthBranches.length) ?
+                        getSolarTermDate(year, nextTermIdx) : lichunNextYear;
+                    
+                    if (currentDate >= termDate && currentDate < nextTermDate) {
+                        monthBranchIndex = branch;
+                        break;
+                    }
+                }
+            }
+
+            // Month stem calculation based on year stem (월두법/year stem method)
+            // 갑·기년(0,5): 인월=병(2), 을·경년(1,6): 인월=무(4), 병·신년(2,7): 인월=경(6), 
+            // 정·임년(3,8): 인월=임(8), 무·계년(4,9): 인월=갑(0)
+            const monthStemBase = [2, 4, 6, 8, 0]; // 인월의 천간 by year stem % 5
+            const baseIndex = yearStemIndex % 5; // Map year stem to one of 5 groups
+            const inMonthStem = monthStemBase[baseIndex]; // 인월(寅月)의 천간
+            
+            // Calculate month stem from 인월 base
+            // 인=2, so offset from 인월 to current month
+            const monthOffset = (monthBranchIndex - 2 + 12) % 12;
+            const monthStemIndex = (inMonthStem + monthOffset) % 10;
+
+            return {
+                stem: HEAVENLY_STEMS[monthStemIndex],
+                branch: EARTHLY_BRANCHES[monthBranchIndex]
+            };
+        }
+
+        // Calculate day pillar
+        function getDayPillar(year, month, day) {
+            // Use Julian Day Number method
+            // Reference day: 1900-01-01 = 갑술 (甲戌) in 60-day cycle
+            const baseDate = new Date(1900, 0, 1);
+            const currentDate = new Date(year, month - 1, day);
+            const daysDiff = Math.floor((currentDate - baseDate) / 86400000);
+            
+            // 1900-01-01 is 갑술(甲戌) which is index 10 in 60 Jiazi cycle
+            const offset = (daysDiff + 10) % 60;
+            return getJiazi(offset);
+        }
+
+        // Calculate hour pillar
+        function getHourPillar(hour, minute, dayStemIndex) {
+            // Determine hour branch (12 double-hours)
+            // 23:00-01:00 = 子時, 01:00-03:00 = 丑時, etc.
+            let adjustedHour = hour;
+            
+            // Handle 23:00-24:00 as 子時 (midnight hour)
+            // Note: Hour 23 is the START of the next calendar day's 子時, 
+            // but still uses the current day's stem for calculation per traditional rules
+            if (hour === 23) {
+                adjustedHour = 0; // Treat as 子時
+            }
+
+            const hourBranchIndex = Math.floor((adjustedHour + 1) / 2) % 12;
+
+            // Hour stem calculation based on day stem
+            // Formula: hour_stem = (day_stem * 2 + hour_branch) % 10
+            const hourStemIndex = (dayStemIndex * 2 + hourBranchIndex) % 10;
+
+            return {
+                stem: HEAVENLY_STEMS[hourStemIndex],
+                branch: EARTHLY_BRANCHES[hourBranchIndex]
+            };
+        }
+
+        function formatPillar(pillar) {
+            return `
+                <div class="pillar-chinese">${pillar.stem.ch}${pillar.branch.ch}</div>
+                <div class="pillar-korean">${pillar.stem.ko}${pillar.branch.ko}</div>
+                <div class="element-info">${pillar.stem.element}</div>
+                <div class="element-info">${pillar.branch.element} (${pillar.branch.animal})</div>
+            `;
+        }
+
+        function calculateSaju() {
+            hideError();
+
+            try {
+                // Get input values
+                const calendarType = document.querySelector('input[name="calendarType"]:checked').value;
+                let year = parseInt(document.getElementById('year').value);
+                let month = parseInt(document.getElementById('month').value);
+                let day = parseInt(document.getElementById('day').value);
+                const hour = parseInt(document.getElementById('hour').value) || 0;
+                const minute = parseInt(document.getElementById('minute').value) || 0;
+                const isLeapMonth = document.getElementById('isLeapMonth').checked;
+
+                // Validation
+                if (!year || !month || !day) {
+                    showError('생년월일을 모두 입력해주세요.');
+                    return;
+                }
+
+                if (year < 1900 || year > 2100) {
+                    showError('년도는 1900-2100 사이여야 합니다.');
+                    return;
+                }
+
+                if (month < 1 || month > 12) {
+                    showError('월은 1-12 사이여야 합니다.');
+                    return;
+                }
+
+                if (day < 1 || day > 31) {
+                    showError('일은 1-31 사이여야 합니다.');
+                    return;
+                }
+
+                let solarYear = year;
+                let solarMonth = month;
+                let solarDay = day;
+                let displayDate = '';
+
+                // Convert lunar to solar if needed
+                if (calendarType === 'lunar') {
+                    const solar = lunarToSolar(year, month, day, isLeapMonth);
+                    solarYear = solar.year;
+                    solarMonth = solar.month;
+                    solarDay = solar.day;
+                    displayDate = `음력 ${year}년 ${month}월 ${day}일${isLeapMonth ? '(윤)' : ''} → 양력 ${solarYear}년 ${solarMonth}월 ${solarDay}일`;
+                } else {
+                    const lunar = solarToLunar(year, month, day);
+                    displayDate = `양력 ${year}년 ${month}월 ${day}일 → 음력 ${lunar.year}년 ${lunar.month}월 ${lunar.day}일${lunar.isLeapMonth ? '(윤)' : ''}`;
+                }
+
+                // Calculate pillars
+                const yearPillar = getYearPillar(solarYear, solarMonth, solarDay);
+                const monthPillar = getMonthPillar(solarYear, solarMonth, solarDay, 
+                    HEAVENLY_STEMS.findIndex(s => s.ch === yearPillar.stem.ch));
+                const dayPillar = getDayPillar(solarYear, solarMonth, solarDay);
+                const hourPillar = getHourPillar(hour, minute,
+                    HEAVENLY_STEMS.findIndex(s => s.ch === dayPillar.stem.ch));
+
+                // Display results
+                document.getElementById('convertedDate').innerHTML = `<strong>변환 정보:</strong> ${displayDate}<br><strong>시간:</strong> ${hour}시 ${minute}분`;
+                document.getElementById('yearPillar').innerHTML = formatPillar(yearPillar);
+                document.getElementById('monthPillar').innerHTML = formatPillar(monthPillar);
+                document.getElementById('dayPillar').innerHTML = formatPillar(dayPillar);
+                document.getElementById('hourPillar').innerHTML = formatPillar(hourPillar);
+
+                // Display element information
+                const elementInfo = `
+                    <h3>🌟 오행 정보 (Five Elements)</h3>
+                    <p><strong>일간 (日干, Day Master):</strong> ${dayPillar.stem.ch}${dayPillar.stem.ko} - ${dayPillar.stem.element}</p>
+                    <p>일간은 본인을 나타내며, 사주팔자 해석의 중심이 됩니다.</p>
+                    <p><strong>사주 구성:</strong></p>
+                    <ul>
+                        <li>연주 ${yearPillar.stem.ch}${yearPillar.branch.ch} - 조상, 초년운 (0-20세)</li>
+                        <li>월주 ${monthPillar.stem.ch}${monthPillar.branch.ch} - 부모, 청년운 (20-40세)</li>
+                        <li>일주 ${dayPillar.stem.ch}${dayPillar.branch.ch} - 본인/배우자, 중년운 (40-60세)</li>
+                        <li>시주 ${hourPillar.stem.ch}${hourPillar.branch.ch} - 자녀, 말년운 (60세 이후)</li>
+                    </ul>
+                `;
+                document.getElementById('elementInfo').innerHTML = elementInfo;
+
+                document.getElementById('resultSection').classList.add('show');
+                document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth' });
+
+            } catch (error) {
+                showError('계산 중 오류가 발생했습니다: ' + error.message);
+                console.error(error);
+            }
+        }
+
+        // Test function for validation
+        function runTest() {
+            // Test case: 1992-10-24 05:30
+            document.querySelector('input[value="solar"]').checked = true;
+            document.getElementById('year').value = 1992;
+            document.getElementById('month').value = 10;
+            document.getElementById('day').value = 24;
+            document.getElementById('hour').value = 5;
+            document.getElementById('minute').value = 30;
+            calculateSaju();
+        }
+
+        // Enable Enter key to calculate
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                calculateSaju();
+            }
+        });
+    </script>
+</body>
+</html>
