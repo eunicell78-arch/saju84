@@ -79,12 +79,7 @@ SOLAR_TO_LUNAR_MONTH = {
     12: 10   # 12월 = 子월 (대설~소한)
 }
 
-# 시간별 지지
-HOUR_BRANCHES = {
-    (23, 1): '자(子)', (1, 3): '축(丑)', (3, 5): '인(寅)', (5, 7): '묘(卯)',
-    (7, 9): '진(辰)', (9, 11): '사(巳)', (11, 13): '오(午)', (13, 15): '미(未)',
-    (15, 17): '신(申)', (17, 19): '유(酉)', (19, 21): '술(戌)', (21, 23): '해(亥)'
-}
+# 시간별 지지는 get_hour_pillar 함수 내부에서 계산됨 (30분 기준)
 
 
 def get_stem_branch(year: int) -> Tuple[str, str]:
@@ -145,28 +140,46 @@ def get_day_pillar(date: datetime) -> Tuple[str, str]:
 
 
 def get_hour_pillar(date: datetime, day_stem: str) -> Tuple[str, str]:
-    """시주 계산"""
+    """시주 계산 (자정 기준)
+    
+    전통 사주학 기준: 각 시(時)는 해당 시간의 30분 전부터 시작
+    예: 오시(午時) = 11:30 ~ 13:30
+    """
     hour = date.hour
+    minute = date.minute
     
-    # 시지 찾기
-    branch = '자(子)'  # 기본값
-    for (start, end), b in HOUR_BRANCHES.items():
-        if start <= hour < end:
-            branch = b
-            break
-        elif start > end:  # 자시(23-01)의 경우
-            if hour >= start or hour < end:
-                branch = b
-                break
+    # 시간을 분 단위로 변환 (자정 기준 적용)
+    # 예: 13시 5분 = 13 * 60 + 5 = 785분
+    total_minutes = hour * 60 + minute
     
-    # 시간 계산 (일간에 따라 달라짐)
+    # 각 시는 30분 전부터 시작하므로 30분을 더함
+    adjusted_minutes = (total_minutes + 30) % 1440  # 1440 = 24시간 (60분 * 24시간)
+    adjusted_hour = adjusted_minutes // 60
+    
+    # 시지(時支) 결정
+    hour_branch_map = {
+        0: '자(子)',   # 23:30 ~ 01:30
+        1: '축(丑)',   # 01:30 ~ 03:30
+        2: '인(寅)',   # 03:30 ~ 05:30
+        3: '묘(卯)',   # 05:30 ~ 07:30
+        4: '진(辰)',   # 07:30 ~ 09:30
+        5: '사(巳)',   # 09:30 ~ 11:30
+        6: '오(午)',   # 11:30 ~ 13:30
+        7: '미(未)',   # 13:30 ~ 15:30
+        8: '신(申)',   # 15:30 ~ 17:30
+        9: '유(酉)',   # 17:30 ~ 19:30
+        10: '술(戌)',  # 19:30 ~ 21:30
+        11: '해(亥)'   # 21:30 ~ 23:30
+    }
+    
+    branch_index = adjusted_hour // 2
+    branch = hour_branch_map.get(branch_index, '자(子)')
+    
+    # 시간(時干) 계산 (일간에 따라 달라짐)
     day_stem_idx = HEAVENLY_STEMS.index(day_stem)
-    # 갑기일(0,5)은 갑자시, 을경일(1,6)은 병자시...
     hour_stem_start = {0: 0, 1: 2, 2: 4, 3: 6, 4: 8, 5: 0, 6: 2, 7: 4, 8: 6, 9: 8}
     
-    # 시지 인덱스 찾기
-    branch_idx = EARTHLY_BRANCHES.index(branch)
-    stem_idx = (hour_stem_start[day_stem_idx] + branch_idx) % 10
+    stem_idx = (hour_stem_start[day_stem_idx] + branch_index) % 10
     stem = HEAVENLY_STEMS[stem_idx]
     
     return stem, branch
