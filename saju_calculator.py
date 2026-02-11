@@ -5,6 +5,13 @@ Four Pillars (Saju) Calculator Module
 from datetime import datetime
 from typing import Dict, Tuple
 
+# 음력/양력 변환 라이브러리
+try:
+    from korean_lunar_calendar import KoreanLunarCalendar
+    LUNAR_CALENDAR_AVAILABLE = True
+except ImportError:
+    LUNAR_CALENDAR_AVAILABLE = False
+
 # 새로 추가된 모듈들 임포트
 try:
     from sipsin import get_sipsin, get_branch_sipsin
@@ -85,6 +92,28 @@ HOUR_BRANCHES = {
     (7, 9): '진(辰)', (9, 11): '사(巳)', (11, 13): '오(午)', (13, 15): '미(未)',
     (15, 17): '신(申)', (17, 19): '유(酉)', (19, 21): '술(戌)', (21, 23): '해(亥)'
 }
+
+
+def lunar_to_solar(year: int, month: int, day: int, is_leap_month: bool = False) -> Dict[str, int]:
+    """음력을 양력으로 변환"""
+    if not LUNAR_CALENDAR_AVAILABLE:
+        raise ImportError("korean_lunar_calendar 라이브러리가 설치되지 않았습니다.")
+    
+    try:
+        calendar = KoreanLunarCalendar()
+        calendar.setLunarDate(year, month, day, is_leap_month)
+        
+        solar_year = calendar.solarYear
+        solar_month = calendar.solarMonth
+        solar_day = calendar.solarDay
+        
+        return {
+            'year': solar_year,
+            'month': solar_month,
+            'day': solar_day
+        }
+    except Exception as e:
+        raise ValueError(f"음력 변환 중 오류가 발생했습니다: {str(e)}")
 
 
 def get_stem_branch(year: int) -> Tuple[str, str]:
@@ -207,6 +236,11 @@ def calculate_four_pillars(birth_date: datetime, gender: str = '남') -> Dict:
     hour_hanja = f"{HEAVENLY_STEMS_HANJA[HEAVENLY_STEMS.index(hour_stem)]}{EARTHLY_BRANCHES_HANJA[EARTHLY_BRANCHES.index(hour_branch)]}"
     
     result = {
+        'birth_year': year,
+        'birth_month': month,
+        'birth_day': birth_date.day,
+        'birth_hour': birth_date.hour,
+        'birth_minute': birth_date.minute,
         'year_pillar': f"{year_stem}{year_branch}",
         'month_pillar': f"{month_stem}{month_branch}",
         'day_pillar': f"{day_stem}{day_branch}",
@@ -328,3 +362,136 @@ def get_element_count(result: Dict) -> Dict[str, int]:
         element_count[elem] = element_count.get(elem, 0) + 1
     
     return element_count
+
+
+def calculate_jijanggan(result: Dict) -> str:
+    """지장간 계산"""
+    JIJANGGAN_TABLE = {
+        '子': ['癸(10일)'],
+        '丑': ['己(9일)', '癸(3일)', '辛(18일)'],
+        '寅': ['戊(7일)', '丙(7일)', '甲(16일)'],
+        '卯': ['乙(10일)'],
+        '辰': ['戊(9일)', '乙(3일)', '癸(18일)'],
+        '巳': ['戊(5일)', '庚(9일)', '丙(16일)'],
+        '午': ['己(10일)', '丁(20일)'],
+        '未': ['己(9일)', '丁(3일)', '乙(18일)'],
+        '申': ['戊(7일)', '壬(3일)', '庚(20일)'],
+        '酉': ['辛(10일)'],
+        '戌': ['戊(9일)', '辛(3일)', '丁(18일)'],
+        '亥': ['戊(7일)', '甲(5일)', '壬(18일)']
+    }
+    
+    year_hanja = result.get('year_hanja', '')
+    month_hanja = result.get('month_hanja', '')
+    day_hanja = result.get('day_hanja', '')
+    hour_hanja = result.get('hour_hanja', '')
+    
+    branches = [
+        year_hanja[1] if len(year_hanja) > 1 else '',
+        month_hanja[1] if len(month_hanja) > 1 else '',
+        day_hanja[1] if len(day_hanja) > 1 else '',
+        hour_hanja[1] if len(hour_hanja) > 1 else ''
+    ]
+    
+    jijanggan_str = ""
+    for i, branch_name in enumerate(['년지', '월지', '일지', '시지']):
+        hanja = branches[i]
+        if hanja:
+            jijanggan = JIJANGGAN_TABLE.get(hanja, [])
+            jijanggan_str += f"- {branch_name} {hanja}: {', '.join(jijanggan)}\n"
+    
+    return jijanggan_str
+
+
+def format_sipsin_distribution(result: Dict) -> str:
+    """십신 분포 포맷팅"""
+    sipsin_data = result.get('sipsin', {})
+    return f"""
+- 년주: {sipsin_data.get('year_stem', '미상')}
+- 월주: {sipsin_data.get('month_stem', '미상')}
+- 일주: 일간 (본인)
+- 시주: {sipsin_data.get('hour_stem', '미상')}
+"""
+
+
+def format_current_daeun(result: Dict) -> str:
+    """현재 대운 포맷팅"""
+    if 'daeun' not in result or not result['daeun'].get('list'):
+        return "- 현재 대운 정보 없음"
+    
+    # 현재 나이 계산
+    birth_year = result.get('birth_year', 0)
+    current_year = datetime.now().year
+    current_age = current_year - birth_year + 1
+    
+    daeun_list = result['daeun']['list']
+    current_daeun = None
+    
+    # 현재 대운 찾기
+    for daeun in daeun_list:
+        start_age = daeun.get('나이', 0)
+        end_age = start_age + 10
+        if start_age <= current_age < end_age:
+            current_daeun = daeun
+            break
+    
+    if not current_daeun:
+        current_daeun = daeun_list[0]
+    
+    return f"""
+- 대운 간지: {current_daeun.get('간지', '미상')}
+- 시작 나이: {current_daeun.get('나이', '미상')}세
+- 십신: {current_daeun.get('십신', '미상')}
+- 12운성: {current_daeun.get('12운성', '미상')}
+"""
+
+
+def format_daeun_table(result: Dict) -> str:
+    """대운표 포맷팅"""
+    daeun_list = result.get('daeun', {}).get('list', [])
+    if not daeun_list:
+        return "대운 정보 없음"
+    
+    table_str = "| 나이 | 간지 | 십신 | 12운성 |\n"
+    table_str += "|------|------|------|--------|\n"
+    for daeun in daeun_list[:10]:  # 10개 대운
+        age = daeun.get('나이', '?')
+        ganji = daeun.get('간지', '?')
+        sipsin = daeun.get('십신', '?')
+        unsung = daeun.get('12운성', '?')
+        table_str += f"| {age}세 | {ganji} | {sipsin} | {unsung} |\n"
+    return table_str
+
+
+def format_gwiin_list(result: Dict) -> str:
+    """귀인 목록 포맷팅"""
+    sinsal = result.get('sinsal', {})
+    gwiin_list = []
+    
+    if sinsal.get('cheonul'):
+        gwiin_list.append(f"천을귀인: {', '.join(sinsal['cheonul'])}")
+    
+    if gwiin_list:
+        return "\n".join([f"- {g}" for g in gwiin_list])
+    return "- 특별한 귀인 없음"
+
+
+def format_sal_list(result: Dict) -> str:
+    """살 목록 포맷팅"""
+    sinsal = result.get('sinsal', {})
+    sal_list = []
+    
+    if sinsal.get('yeokma'):
+        sal_list.append(f"역마살: {', '.join(sinsal['yeokma'])}")
+    if sinsal.get('dohwa'):
+        sal_list.append(f"도화살: {', '.join(sinsal['dohwa'])}")
+    if sinsal.get('gongmang'):
+        sal_list.append(f"공망: {', '.join(sinsal['gongmang'])}")
+    if sinsal.get('wonjin'):
+        sal_list.append(f"원진: {', '.join(sinsal['wonjin'])}")
+    if sinsal.get('yangin'):
+        sal_list.append(f"양인: {', '.join(sinsal['yangin'])}")
+    
+    if sal_list:
+        return "\n".join([f"- {s}" for s in sal_list])
+    return "- 특별한 살 없음"
