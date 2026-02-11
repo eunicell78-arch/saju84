@@ -251,7 +251,7 @@ def get_saju_interpretation(saju_result: dict, is_student: bool = False, grade_l
         response = openai.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "당신은 전문 사주명리학자입니다. 사주팔자를 깊이있고 정확하게 풀이하며, 희망적이고 긍정적인 메시지를 전달합니다."},
+                {"role": "system", "content": "당신은 전문 사주명리학자입니다. 사주팔자를 깊이 있고 정확하게 풀이하며, 희망적이고 긍정적인 메시지를 전달합니다."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
@@ -401,7 +401,6 @@ with col1:
     year = birth_date.year
     month = birth_date.month
     day = birth_date.day
-    # birth_hour and birth_minute are already defined above
     
     if st.button("🔮 사주팔자 계산하기", type="primary", use_container_width=True):
         # 음력인 경우 양력으로 변환
