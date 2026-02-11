@@ -204,13 +204,13 @@ def get_saju_interpretation(saju_result: dict, is_student: bool = False, grade_l
 **정확히 아래 형식과 순서에 따라 풀이해주세요:**
 
 ### 1. 사주 구성
-- **생년월일**: {saju_result['birth_date']} (양력 기준)
-{"- **시간**: 미상 (3주 기반 풀이)" if time_unknown else ""}
+- **생년월일**: {saju_result['birth_date']} (양력 기준){f"""
+- **시간**: 미상 (3주 기반 풀이)""" if time_unknown else ""}
 - **사주 구성**: 
   * 년주(年柱): {saju_result['year_pillar']} ({saju_result['year_hanja']})
   * 월주(月柱): {saju_result['month_pillar']} ({saju_result['month_hanja']})
   * 일주(日柱): {saju_result['day_pillar']} ({saju_result['day_hanja']})
-  * 시주(時柱): {saju_result['hour_pillar']} ({saju_result['hour_hanja']}){"" if not time_unknown else " (출생 시간 미상)"}
+  * 시주(時柱): {saju_result['hour_pillar']} ({saju_result['hour_hanja']}){" (출생 시간 미상)" if time_unknown else ""}
 - **일간(日干) 설명**: 일간의 의미와 특성을 설명
 - **오행 분포**: 목/화/토/금/수 각각의 개수와 균형 상태 분석
 

@@ -205,7 +205,7 @@ def calculate_four_pillars(birth_date: datetime, gender: str = '남', include_ho
     # 일주
     day_stem, day_branch = get_day_pillar(birth_date)
     
-    # 시주 (시간 모름인 경우 건너뛰기)
+    # 시주 (시간 모름 인 경우 건너뛰기)
     if include_hour:
         hour_stem, hour_branch = get_hour_pillar(birth_date, day_stem)
     else:
