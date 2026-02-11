@@ -13,12 +13,47 @@ try:
 except ImportError:
     OPENAI_AVAILABLE = False
 
+# Korean Lunar Calendar 임포트 (선택적)
+try:
+    from korean_lunar_calendar import KoreanLunarCalendar
+    LUNAR_CALENDAR_AVAILABLE = True
+except ImportError:
+    LUNAR_CALENDAR_AVAILABLE = False
+
 # 페이지 설정
 st.set_page_config(
     page_title="사주팔자 만세력 계산기",
     page_icon="🔮",
     layout="wide"
 )
+
+
+def lunar_to_solar(year, month, day, is_leap_month=False):
+    """
+    음력을 양력으로 변환
+    
+    Args:
+        year (int): 음력 연도
+        month (int): 음력 월
+        day (int): 음력 일
+        is_leap_month (bool): 윤달 여부
+    
+    Returns:
+        dict: 양력 날짜 정보 {'year': int, 'month': int, 'day': int} 또는 None
+    """
+    try:
+        calendar = KoreanLunarCalendar()
+        # setLunarDate() automatically populates solarYear, solarMonth, and solarDay attributes
+        calendar.setLunarDate(year, month, day, is_leap_month)
+        
+        return {
+            'year': calendar.solarYear,
+            'month': calendar.solarMonth,
+            'day': calendar.solarDay
+        }
+    except Exception as e:
+        st.error(f"음력 변환 중 오류: {e}")
+        return None
 
 st.title("🔮 사주팔자 만세력 계산기")
 st.caption("생년월일시를 입력하면 사주팔자를 계산하고 AI가 풀이해드립니다.")
@@ -182,8 +217,29 @@ col1, col2 = st.columns([1, 1])
 with col1:
     st.subheader("📅 생년월일시 입력")
     
+    # 달력 유형 선택
+    calendar_type = st.radio(
+        "달력 유형",
+        options=['양력', '음력'],
+        horizontal=True,
+        help="생년월일을 양력으로 입력할지, 음력으로 입력할지 선택하세요."
+    )
+    
+    # 음력 선택 시에만 윤달 옵션 표시
+    is_leap_month = False
+    if calendar_type == "음력":
+        if not LUNAR_CALENDAR_AVAILABLE:
+            st.error("⚠️ 음력 변환 기능을 사용하려면 `korean-lunar-calendar` 라이브러리가 필요합니다.")
+            st.stop()
+        
+        is_leap_month = st.checkbox(
+            "윤달",
+            value=False,
+            help="해당 월이 윤달인 경우 체크하세요."
+        )
+    
     birth_date = st.date_input(
-        "생년월일",
+        f"생년월일 ({calendar_type})",
         value=datetime(1990, 1, 1),
         min_value=datetime(1900, 1, 1),
         max_value=datetime(2100, 12, 31)
@@ -200,10 +256,33 @@ with col1:
         horizontal=True
     )
     
-    # datetime 객체 생성
-    birth_datetime = datetime.combine(birth_date, birth_time)
+    # datetime 객체 생성 (일단 입력된 날짜로 생성, 음력인 경우 아래에서 변환)
+    year = birth_date.year
+    month = birth_date.month
+    day = birth_date.day
+    birth_hour = birth_time.hour
+    birth_minute = birth_time.minute
     
     if st.button("🔮 사주팔자 계산하기", type="primary", use_container_width=True):
+        # 음력인 경우 양력으로 변환
+        if calendar_type == "음력":
+            st.info(f"🌙 음력 입력: {year}년 {month}월 {day}일 {'(윤달)' if is_leap_month else ''}")
+            
+            solar_result = lunar_to_solar(year, month, day, is_leap_month)
+            
+            if solar_result:
+                year = solar_result['year']
+                month = solar_result['month']
+                day = solar_result['day']
+                
+                st.success(f"📌 변환된 양력: {year}년 {month}월 {day}일")
+            else:
+                st.error("음력 변환에 실패했습니다. 입력 값을 확인해주세요.")
+                st.stop()
+        
+        # 양력 날짜로 datetime 객체 생성
+        birth_datetime = datetime(year, month, day, birth_hour, birth_minute)
+        
         st.session_state['saju_calculated'] = True
         st.session_state['birth_datetime'] = birth_datetime
         st.session_state['gender'] = gender
@@ -215,6 +294,9 @@ with col2:
         "태어난 년(年), 월(月), 일(日), 시(時)를 "
         "천간(天干)과 지지(地支)로 표현한 것으로, "
         "총 8개의 글자로 구성됩니다.\n\n"
+        "**음력/양력 입력**\n\n"
+        "음력 생일인 경우 '음력'을 선택하면 자동으로 양력으로 변환됩니다. "
+        "윤달인 경우 '윤달' 체크박스를 선택하세요.\n\n"
         "**AI 풀이 기능**\n\n"
         "OpenAI ChatGPT를 활용하여 전문적인 사주 해석을 제공합니다."
     )
