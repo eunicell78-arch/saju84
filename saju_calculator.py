@@ -81,9 +81,55 @@ SOLAR_TO_LUNAR_MONTH = {
 
 # 시간별 지지는 get_hour_pillar 함수 내부에서 계산됨 (30분 기준)
 
+# 입춘(立春) 날짜 데이터 (1900-2100년)
+# 입춘 전 출생자는 전년도 간지 사용
+LICHUN_DATES = {
+    1900: (2, 5), 1901: (2, 4), 1902: (2, 5), 1903: (2, 5), 1904: (2, 5),
+    1905: (2, 4), 1906: (2, 5), 1907: (2, 5), 1908: (2, 5), 1909: (2, 4),
+    1910: (2, 5), 1911: (2, 5), 1912: (2, 5), 1913: (2, 4), 1914: (2, 5),
+    1915: (2, 5), 1916: (2, 5), 1917: (2, 4), 1918: (2, 5), 1919: (2, 5),
+    1920: (2, 5), 1921: (2, 4), 1922: (2, 4), 1923: (2, 5), 1924: (2, 5),
+    1925: (2, 4), 1926: (2, 4), 1927: (2, 5), 1928: (2, 5), 1929: (2, 4),
+    1930: (2, 4), 1931: (2, 5), 1932: (2, 5), 1933: (2, 4), 1934: (2, 4),
+    1935: (2, 5), 1936: (2, 5), 1937: (2, 4), 1938: (2, 4), 1939: (2, 5),
+    1940: (2, 5), 1941: (2, 4), 1942: (2, 4), 1943: (2, 5), 1944: (2, 5),
+    1945: (2, 4), 1946: (2, 4), 1947: (2, 4), 1948: (2, 5), 1949: (2, 4),
+    1950: (2, 4), 1951: (2, 4), 1952: (2, 5), 1953: (2, 4), 1954: (2, 4),
+    1955: (2, 4), 1956: (2, 5), 1957: (2, 4), 1958: (2, 4), 1959: (2, 4),
+    1960: (2, 5), 1961: (2, 4), 1962: (2, 4), 1963: (2, 4), 1964: (2, 5),
+    1965: (2, 4), 1966: (2, 4), 1967: (2, 4), 1968: (2, 5), 1969: (2, 4),
+    1970: (2, 4), 1971: (2, 4), 1972: (2, 5), 1973: (2, 4), 1974: (2, 4),
+    1975: (2, 4), 1976: (2, 5), 1977: (2, 4), 1978: (2, 4), 1979: (2, 4),
+    1980: (2, 5), 1981: (2, 4), 1982: (2, 4), 1983: (2, 4), 1984: (2, 5),
+    1985: (2, 4), 1986: (2, 4), 1987: (2, 4), 1988: (2, 5), 1989: (2, 4),
+    1990: (2, 4), 1991: (2, 4), 1992: (2, 4), 1993: (2, 4), 1994: (2, 4),
+    1995: (2, 4), 1996: (2, 4), 1997: (2, 4), 1998: (2, 4), 1999: (2, 4),
+    2000: (2, 4), 2001: (2, 4), 2002: (2, 4), 2003: (2, 4), 2004: (2, 4),
+    2005: (2, 4), 2006: (2, 4), 2007: (2, 4), 2008: (2, 4), 2009: (2, 4),
+    2010: (2, 4), 2011: (2, 4), 2012: (2, 4), 2013: (2, 4), 2014: (2, 4),
+    2015: (2, 4), 2016: (2, 4), 2017: (2, 3), 2018: (2, 4), 2019: (2, 4),
+    2020: (2, 4), 2021: (2, 3), 2022: (2, 4), 2023: (2, 4), 2024: (2, 4),
+    2025: (2, 3), 2026: (2, 4), 2027: (2, 4), 2028: (2, 4), 2029: (2, 3),
+    2030: (2, 4), 2031: (2, 4), 2032: (2, 4), 2033: (2, 3), 2034: (2, 4),
+    2035: (2, 4), 2036: (2, 4), 2037: (2, 3), 2038: (2, 4), 2039: (2, 4),
+    2040: (2, 4), 2041: (2, 3), 2042: (2, 4), 2043: (2, 4), 2044: (2, 4),
+    2045: (2, 3), 2046: (2, 4), 2047: (2, 4), 2048: (2, 4), 2049: (2, 3),
+    2050: (2, 4), 2051: (2, 3), 2052: (2, 4), 2053: (2, 3), 2054: (2, 4),
+    2055: (2, 4), 2056: (2, 4), 2057: (2, 3), 2058: (2, 4), 2059: (2, 4),
+    2060: (2, 4), 2061: (2, 3), 2062: (2, 4), 2063: (2, 4), 2064: (2, 4),
+    2065: (2, 3), 2066: (2, 4), 2067: (2, 4), 2068: (2, 4), 2069: (2, 3),
+    2070: (2, 4), 2071: (2, 4), 2072: (2, 4), 2073: (2, 3), 2074: (2, 4),
+    2075: (2, 4), 2076: (2, 4), 2077: (2, 3), 2078: (2, 4), 2079: (2, 4),
+    2080: (2, 4), 2081: (2, 3), 2082: (2, 4), 2083: (2, 4), 2084: (2, 4),
+    2085: (2, 3), 2086: (2, 4), 2087: (2, 4), 2088: (2, 4), 2089: (2, 3),
+    2090: (2, 4), 2091: (2, 4), 2092: (2, 4), 2093: (2, 3), 2094: (2, 4),
+    2095: (2, 4), 2096: (2, 4), 2097: (2, 3), 2098: (2, 4), 2099: (2, 4),
+    2100: (2, 4)
+}
+
 
 def get_stem_branch(year: int) -> Tuple[str, str]:
-    """연도를 천간지지로 변환"""
+    """연도를 천간지지로 변환 (입춘 기준 고려 안 함, 단순 연도 변환)"""
     # 갑자년(1984)을 기준으로 계산
     base_year = 1984
     diff = year - base_year
@@ -98,26 +144,178 @@ def get_stem_branch(year: int) -> Tuple[str, str]:
     return stem, branch
 
 
-def get_month_pillar(year: int, month: int) -> Tuple[str, str]:
-    """월주 계산 (절기 기준 근사)"""
-    # 월지 결정 (절기 기준 근사)
-    lunar_month_idx = SOLAR_TO_LUNAR_MONTH.get(month, 0)
-    branch = MONTH_BRANCHES[lunar_month_idx]
+def get_year_pillar(year: int, month: int, day: int) -> Tuple[str, str]:
+    """
+    연주(年柱) 계산 - 입춘 기준 적용
     
-    # 월간 계산 (연간에 따라 달라짐)
-    # 전통 명리학 규칙: 甲己년은 丙寅월부터, 乙庚년은 戊寅월부터, 
-    # 丙辛년은 庚寅월부터, 丁壬년은 壬寅월부터, 戊癸년은 甲寅월부터
-    # month_stem_start는 寅월(index 0)의 천간 시작 인덱스
-    # 0=甲, 2=丙, 4=戊, 6=庚, 8=壬
-    year_stem_idx = (year - 1984) % 10
-    month_stem_start = {0: 2, 1: 4, 2: 6, 3: 8, 4: 0, 5: 2, 6: 4, 7: 6, 8: 8, 9: 0}
+    입춘 전 출생자는 전년도 간지 사용
     
-    # 寅월(index 0)을 기준으로 계산
-    # lunar_month_idx는 MONTH_BRANCHES에서의 인덱스 (寅=0, 卯=1, ..., 丑=11)
-    stem_idx = (month_stem_start[year_stem_idx] + lunar_month_idx) % 10
+    Args:
+        year: 양력 연도
+        month: 양력 월
+        day: 양력 일
+    
+    Returns:
+        (천간, 지지) tuple
+    """
+    # 입춘 날짜 가져오기 (기본값: 2월 4일)
+    lichun_month, lichun_day = LICHUN_DATES.get(year, (2, 4))
+    
+    # 입춘 전이면 전년도 사용
+    if month < lichun_month or (month == lichun_month and day < lichun_day):
+        year_for_ganzhi = year - 1
+    else:
+        year_for_ganzhi = year
+    
+    # 간지 계산 (갑자년 = 1984년 기준)
+    base_year = 1984
+    diff = year_for_ganzhi - base_year
+    
+    stem_idx = diff % 10
+    branch_idx = diff % 12
+    
     stem = HEAVENLY_STEMS[stem_idx]
+    branch = EARTHLY_BRANCHES[branch_idx]
     
     return stem, branch
+
+
+def get_month_stem(year_stem: str, month_index: int) -> str:
+    """
+    월간(月干) 계산 - 오호법(五虎法) 적용
+    
+    년간에 따라 정월(寅월)의 천간이 결정되고,
+    그로부터 순서대로 월간이 정해짐
+    
+    오호법:
+    - 甲己년 → 정월(寅월) = 丙寅 시작
+    - 乙庚년 → 정월(寅월) = 戊寅 시작
+    - 丙辛년 → 정월(寅월) = 庚寅 시작
+    - 丁壬년 → 정월(寅월) = 壬寅 시작
+    - 戊癸년 → 정월(寅월) = 甲寅 시작
+    
+    Args:
+        year_stem: 년간 (한자, 예: '甲' 또는 '갑(甲)')
+        month_index: 월지 인덱스 (0~11, 寅월=0, 卯월=1, ..., 丑월=11)
+    
+    Returns:
+        월간 (한자 포함, 예: '병(丙)')
+    """
+    # 한자만 추출
+    if '(' in year_stem:
+        year_stem_hanja = year_stem.split('(')[1].rstrip(')')
+    else:
+        year_stem_hanja = year_stem
+    
+    # 년간에 따른 정월(寅월) 천간 시작 인덱스
+    year_stem_map = {
+        '甲': 2,  # 丙 (甲己년 → 丙寅 시작)
+        '己': 2,  # 丙
+        '乙': 4,  # 戊 (乙庚년 → 戊寅 시작)
+        '庚': 4,  # 戊
+        '丙': 6,  # 庚 (丙辛년 → 庚寅 시작)
+        '辛': 6,  # 庚
+        '丁': 8,  # 壬 (丁壬년 → 壬寅 시작)
+        '壬': 8,  # 壬
+        '戊': 0,  # 甲 (戊癸년 → 甲寅 시작)
+        '癸': 0   # 甲
+    }
+    
+    # 정월(寅월) 시작 인덱스
+    start_idx = year_stem_map.get(year_stem_hanja, 0)
+    
+    # 해당 월의 천간 인덱스
+    month_stem_idx = (start_idx + month_index) % 10
+    
+    return HEAVENLY_STEMS[month_stem_idx]
+
+
+def get_month_pillar(year: int, month: int, day: int, year_stem: str) -> Tuple[str, str, int]:
+    """
+    월주(月柱) 계산 - 절기 기준 + 오호법
+    
+    Args:
+        year: 양력 연도
+        month: 양력 월
+        day: 양력 일
+        year_stem: 년간 (오호법 계산용, 예: '경(庚)')
+    
+    Returns:
+        (천간, 지지, 절월인덱스) tuple
+        절월인덱스는 0~11 (寅월=0, ..., 丑월=11)
+    """
+    # 절기 기준 월 결정 (더 정확한 방법)
+    # 각 절기 범위에 따라 월지 결정
+    if month == 1:
+        if day < 6:
+            month_idx = 10  # 子월
+        else:
+            month_idx = 11  # 丑월
+    elif month == 2:
+        if day < 4:
+            month_idx = 11  # 丑월
+        else:
+            month_idx = 0   # 寅월
+    elif month == 3:
+        if day < 6:
+            month_idx = 0   # 寅월
+        else:
+            month_idx = 1   # 卯월
+    elif month == 4:
+        if day < 5:
+            month_idx = 1   # 卯월
+        else:
+            month_idx = 2   # 辰월
+    elif month == 5:
+        if day < 6:
+            month_idx = 2   # 辰월
+        else:
+            month_idx = 3   # 巳월
+    elif month == 6:
+        if day < 6:
+            month_idx = 3   # 巳월
+        else:
+            month_idx = 4   # 午월
+    elif month == 7:
+        if day < 7:
+            month_idx = 4   # 午월
+        else:
+            month_idx = 5   # 未월
+    elif month == 8:
+        if day < 8:
+            month_idx = 5   # 未월
+        else:
+            month_idx = 6   # 申월
+    elif month == 9:
+        if day < 8:
+            month_idx = 6   # 申월
+        else:
+            month_idx = 7   # 酉월
+    elif month == 10:
+        if day < 8:
+            month_idx = 7   # 酉월
+        else:
+            month_idx = 8   # 戌월
+    elif month == 11:
+        if day < 7:
+            month_idx = 8   # 戌월
+        else:
+            month_idx = 9   # 亥월
+    elif month == 12:
+        if day < 7:
+            month_idx = 9   # 亥월
+        else:
+            month_idx = 10  # 子월
+    else:
+        month_idx = 0  # 기본값
+    
+    # 월지 결정
+    branch = MONTH_BRANCHES[month_idx]
+    
+    # 오호법으로 월간 계산
+    stem = get_month_stem(year_stem, month_idx)
+    
+    return stem, branch, month_idx
 
 
 def get_day_pillar(date: datetime) -> Tuple[str, str]:
@@ -195,12 +393,13 @@ def calculate_four_pillars(birth_date: datetime, gender: str = '남', include_ho
     """
     year = birth_date.year
     month = birth_date.month
+    day = birth_date.day
     
-    # 연주
-    year_stem, year_branch = get_stem_branch(year)
+    # 연주 (입춘 기준)
+    year_stem, year_branch = get_year_pillar(year, month, day)
     
-    # 월주
-    month_stem, month_branch = get_month_pillar(year, month)
+    # 월주 (절기 + 오호법)
+    month_stem, month_branch, month_idx = get_month_pillar(year, month, day, year_stem)
     
     # 일주
     day_stem, day_branch = get_day_pillar(birth_date)
@@ -342,7 +541,9 @@ def calculate_four_pillars(birth_date: datetime, gender: str = '남', include_ho
             
             # 대운
             direction = get_daeun_direction(gender, year_stem_hanja)
-            daeun_age = calculate_daeun_start_age(birth_date, gender, year_stem_hanja, month)
+            # 절월 번호 (1~12, 寅월=1)
+            solar_month_num = month_idx + 1
+            daeun_age = calculate_daeun_start_age(birth_date, gender, year_stem_hanja, solar_month_num)
             daeun_list = generate_daeun(year_stem, month_stem, year_branch, month_branch,
                                        gender, daeun_age, day_stem, 10)
             result['daeun'] = {
