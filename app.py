@@ -107,7 +107,7 @@ with st.sidebar:
 
 
 def get_saju_interpretation(saju_result: dict, is_student: bool = False, grade_level: str = "") -> str:
-    """o1-mini 모델을 사용한 사주팔자 풀이"""
+    """GPT-4o 모델을 사용한 사주팔자 풀이 (구조화된 양식)"""
     
     # 오행 개수
     element_count = get_element_count(saju_result)
@@ -116,9 +116,11 @@ def get_saju_interpretation(saju_result: dict, is_student: bool = False, grade_l
     # 시주 미상 여부 확인
     time_unknown = saju_result.get('time_unknown', False)
     
-    # o1-mini는 system role 미지원 → user role에 역할 명시
-    combined_prompt = f"""당신은 30년 경력의 전문 사주명리학자입니다.
-다음 사주팔자를 분석하여 체계적이고 상세하게 풀이해주세요.
+    # 시스템 프롬프트 (GPT-4o는 system role 지원)
+    system_prompt = "당신은 30년 경력의 전문 사주명리학자입니다. 주어진 양식에 맞춰 체계적이고 상세하게 사주를 풀이해주세요."
+    
+    # 사주 데이터 및 풀이 양식 프롬프트
+    user_prompt = f"""다음 사주팔자를 분석하여 아래 양식에 맞춰 상세하고 구체적으로 풀이해주세요.
 
 ## 생년월일시
 {saju_result['birth_date']}
@@ -301,11 +303,13 @@ def get_saju_interpretation(saju_result: dict, is_student: bool = False, grade_l
     
     try:
         response = openai.chat.completions.create(
-            model="o1-mini",
+            model="gpt-4o",  # o1-mini → gpt-4o 변경
             messages=[
-                {"role": "user", "content": combined_prompt}
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
             ],
-            max_completion_tokens=10000
+            max_tokens=16000,  # max_completion_tokens 10000 → max_tokens 16000 (더 긴 응답)
+            temperature=0.7
         )
         
         return response.choices[0].message.content
@@ -319,7 +323,7 @@ def get_saju_interpretation(saju_result: dict, is_student: bool = False, grade_l
 
 
 def get_followup_answer(saju_result: dict, conversation_history: list, user_question: str) -> str:
-    """o1-mini 모델을 사용한 추가 질문 처리"""
+    """GPT-4o를 사용한 추가 질문 답변"""
     
     # 오행 개수
     element_count = get_element_count(saju_result)
@@ -344,10 +348,9 @@ def get_followup_answer(saju_result: dict, conversation_history: list, user_ques
         for item in conversation_history:
             conversation_context += f"\n**질문**: {item['question']}\n**답변**: {item['answer']}\n"
     
-    # o1-mini는 system role 미지원 → user role에 모든 내용 통합
-    combined_prompt = f"""당신은 30년 경력의 전문 사주명리학자입니다.
-
-{saju_summary}{conversation_context}
+    system_prompt = "당신은 30년 경력의 전문 사주명리학자입니다. 이전 풀이를 참고하여 추가 질문에 상세하고 구체적으로 답변해주세요."
+    
+    user_prompt = f"""{saju_summary}{conversation_context}
 
 ## 추가 질문
 {user_question}
@@ -357,11 +360,13 @@ def get_followup_answer(saju_result: dict, conversation_history: list, user_ques
     
     try:
         response = openai.chat.completions.create(
-            model="o1-mini",
+            model="gpt-4o",  # o1-mini → gpt-4o 변경
             messages=[
-                {"role": "user", "content": combined_prompt}
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
             ],
-            max_completion_tokens=3000
+            max_tokens=3000,
+            temperature=0.7
         )
         
         return response.choices[0].message.content
@@ -854,4 +859,4 @@ AI 사주 풀이
 # 푸터
 st.divider()
 st.caption("💡 본 서비스는 참고용이며, 전문가의 상담을 대체할 수 없습니다.")
-st.caption("🤖 AI 풀이는 OpenAI o1-mini 모델을 사용하며, API 비용이 발생할 수 있습니다.")
+st.caption("🤖 AI 풀이는 OpenAI GPT-4o 모델을 사용하며, API 비용이 발생할 수 있습니다.")
