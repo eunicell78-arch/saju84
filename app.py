@@ -106,261 +106,321 @@ with st.sidebar:
         st.rerun()
 
 
-def get_saju_interpretation(saju_result: dict, is_student: bool = False, grade_level: str = "") -> str:
-    """GPT-4o 모델을 사용한 사주팔자 풀이 (구조화된 양식)"""
+def get_saju_interpretation(saju_result: dict, gender: str, occupation: str, student_grade: str = None) -> str:
+    """
+    GPT-4o 모델을 사용한 사주팔자 풀이 (성향/패턴/전략 중심)
+    """
     
-    # 오행 개수
-    element_count = get_element_count(saju_result)
-    element_str = ' '.join([f'{k}: {v}개' for k, v in element_count.items()])
+    is_student = occupation == "학생" and student_grade is not None
+    time_unknown = saju_result.get('hour_pillar') == '시간미상' or saju_result.get('time_unknown', False)
     
-    # 시주 미상 여부 확인
-    time_unknown = saju_result.get('time_unknown', False)
+    # 시스템 프롬프트
+    system_prompt = """당신은 30년 경력의 전문 사주명리학자입니다.
+
+## 풀이 철학
+- 점괘식 단정 대신 **성향/패턴/전략 중심**으로 설명합니다
+- 내담자가 **자기 이해와 행동 계획**을 얻도록 돕습니다
+- "반드시/무조건" 같은 단정적 표현은 최소화합니다
+- 공포 조장, 의료/법률 단정은 절대 하지 않습니다
+
+## 작성 스타일
+- 공감하고 따뜻한 어조
+- 구체적이고 실천 가능한 조언
+- 장단점을 균형있게 설명
+- 희망적이면서도 현실적인 메시지"""
     
-    # 시스템 프롬프트 (GPT-4o는 system role 지원)
-    system_prompt = "당신은 30년 경력의 전문 사주명리학자입니다. 주어진 양식에 맞춰 체계적이고 상세하게 사주를 풀이해주세요."
-    
-    # 사주 데이터 및 풀이 양식 프롬프트
-    user_prompt = f"""다음 사주팔자를 분석하여 아래 양식에 맞춰 상세하고 구체적으로 풀이해주세요.
+    # 사용자 프롬프트
+    user_prompt = f"""다음 사주팔자를 분석하여 아래 양식에 맞춰 풀이해주세요.
 
 ## 생년월일시
 {saju_result['birth_date']}
-{'학년: ' + grade_level if is_student and grade_level else ''}
+성별: {gender}
+{'학년: ' + student_grade if is_student else '직업: ' + occupation}
+{'⚠️ 출생시간 정보 없음 (시주 기반 해석은 확률로 표현)' if time_unknown else ''}
 
 ## 사주팔자
 - 연주(年柱): {saju_result['year_pillar']} ({saju_result['year_hanja']})
 - 월주(月柱): {saju_result['month_pillar']} ({saju_result['month_hanja']})
 - 일주(日柱): {saju_result['day_pillar']} ({saju_result['day_hanja']})
-- 시주(時柱): {saju_result['hour_pillar']} ({saju_result['hour_hanja']}){"" if not time_unknown else " (출생 시간 미상)"}
+- 시주(時柱): {saju_result['hour_pillar']} ({saju_result['hour_hanja']})
 
 ## 오행 분포
-{element_str}
+{' '.join([f'{k}: {v}개' for k, v in saju_result['elements'].items()])}
 
 ## 십신(十神)
-- 연간: {saju_result.get('sipsin', {}).get('year_stem', '-')}
-- 월간: {saju_result.get('sipsin', {}).get('month_stem', '-')}
-- 일간: {saju_result.get('sipsin', {}).get('day_stem', '-')} (본인)
-- 시간: {saju_result.get('sipsin', {}).get('hour_stem', '-')}
-
-## 12운성(十二運星)
-- 연지: {saju_result.get('unsung', {}).get('year', '-')}
-- 월지: {saju_result.get('unsung', {}).get('month', '-')}
-- 일지: {saju_result.get('unsung', {}).get('day', '-')}
-- 시지: {saju_result.get('unsung', {}).get('hour', '-')}
+- 연간: {saju_result['sipsin']['year_stem']}
+- 월간: {saju_result['sipsin']['month_stem']}
+- 일간: {saju_result['sipsin']['day_stem']} (본인)
+- 시간: {saju_result['sipsin']['hour_stem']}
 
 ## 신살(神殺)
-- 천을귀인: {', '.join(saju_result.get('sinsal', {}).get('cheonul', [])) if saju_result.get('sinsal', {}).get('cheonul') else '없음'}
-- 역마살: {', '.join(saju_result.get('sinsal', {}).get('yeokma', [])) if saju_result.get('sinsal', {}).get('yeokma') else '없음'}
-- 도화살: {', '.join(saju_result.get('sinsal', {}).get('dohwa', [])) if saju_result.get('sinsal', {}).get('dohwa') else '없음'}
-- 공망: {', '.join(saju_result.get('sinsal', {}).get('gongmang', [])) if saju_result.get('sinsal', {}).get('gongmang') else '없음'}
-
-## 대운(大運)
-- 방향: {saju_result.get('daeun', {}).get('direction', '-')}
-- 시작: {saju_result.get('daeun', {}).get('start_age', '-')}세
+- 천을귀인: {', '.join(saju_result['sinsal']['cheonul']) if saju_result['sinsal']['cheonul'] else '없음'}
+- 역마살: {', '.join(saju_result['sinsal']['yeokma']) if saju_result['sinsal']['yeokma'] else '없음'}
+- 도화살: {', '.join(saju_result['sinsal']['dohwa']) if saju_result['sinsal']['dohwa'] else '없음'}
 
 ---
 
 # 풀이 양식
 
-아래 양식에 맞춰 상세하고 구체적으로 풀이해주세요. 각 항목은 최소 3-5문장 이상으로 작성하고, 사주팔자의 구체적인 요소를 언급하며 설명해주세요.
+## 1. 핵심 성향 요약 (3줄)
+일간 {saju_result['day_pillar'][0]}을 중심으로 이 사주의 핵심 성향을 3가지로 요약해주세요.
+- 1줄: [가장 두드러진 성향]
+- 2줄: [주요 강점이나 특성]
+- 3줄: [주의할 점이나 과제]
 
-## 1. 사주 구성
-### 생년월일
-- {saju_result['birth_date']}
+각 줄은 한 문장으로, 구체적이고 이해하기 쉽게 작성하세요.
 
-### 사주구성
-- 년주(年柱): {saju_result['year_pillar']} - [의미와 영향 설명]
-- 월주(月柱): {saju_result['month_pillar']} - [의미와 영향 설명]
-- 일주(日柱): {saju_result['day_pillar']} - [의미와 영향 설명]
-- 시주(時柱): {saju_result['hour_pillar']} - [의미와 영향 설명]
+---
 
-### 일간(日干)
-- 일간은 {saju_result['day_pillar'][0]}입니다
-- [일간의 특성과 의미 상세 설명]
+## 2. 기질과 심리 패턴
 
-### 오행분포
-- {element_str}
-- [오행의 균형/불균형 분석 및 영향]
+### 기본 기질 (5-7문장)
+- 일간과 월지, 일지를 중심으로 타고난 기질을 설명하세요
+- 오행 균형/불균형이 성격에 미치는 영향을 구체적으로 설명하세요
+- "~한 경향이 있습니다", "~한 면이 강합니다" 같은 패턴 중심 표현 사용
 
-## 2. 주요 귀인과 살성
-### 길신과 흉살 풀이
-- [천을귀인, 역마살, 도화살 등의 의미와 영향 상세 설명]
+### 강점 (3가지, 각 2-3문장)
+**강점 1: [제목]**
+- [구체적 설명과 실제 상황 예시]
 
-### 귀인과 살을 중심으로 인생에 어떠한 영향이 있는지
-- [구체적인 인생 패턴과 영향력 분석]
+**강점 2: [제목]**
+- [구체적 설명과 실제 상황 예시]
 
-## 3. 평생운세
-### 초년운(0-30세)
-- [초년의 전반적인 운세와 주요 사건 경향]
+**강점 3: [제목]**
+- [구체적 설명과 실제 상황 예시]
 
-### 중년운(30-60세)
-- [중년의 전반적인 운세와 주요 사건 경향]
+### 약점/주의할 점 (3가지, 각 2-3문장)
+**주의할 점 1: [제목]**
+- [구체적 설명]
+- [개선 전략: "~하면 도움이 될 수 있습니다"]
 
-### 말년운(60세 이후)
-- [말년의 전반적인 운세와 주요 사건 경향]
+**주의할 점 2: [제목]**
+- [구체적 설명]
+- [개선 전략: "~을 시도해볼 만합니다"]
 
-## 4. 핵심성향 3줄 요약
-1. [첫 번째 핵심 성향]
-2. [두 번째 핵심 성향]
-3. [세 번째 핵심 성향]
+**주의할 점 3: [제목]**
+- [구체적 설명]
+- [개선 전략: "~하는 것을 고려해보세요"]
 
-## 5. 기질과 심리 패턴
-### 기본 기질
-- [타고난 성격과 기질 상세 설명]
+---
 
-### 강점
-- [장점 1]: [구체적 설명]
-- [장점 2]: [구체적 설명]
-- [장점 3]: [구체적 설명]
+## 3. 인간관계 / 연애 패턴
 
-### 약점/주의할 점
-- [약점 1]: [구체적 설명 및 개선 방안]
-- [약점 2]: [구체적 설명 및 개선 방안]
-- [약점 3]: [구체적 설명 및 개선 방안]
+### 인간관계 스타일 (5-7문장)
+- 십신 구성(비겁, 식상, 재성, 관성, 인성)을 바탕으로 관계 맺는 방식 설명
+- 도화살, 역마살이 있다면 관계에서의 특징 언급
+- 잘 맞는 사람 유형 2-3가지 제시
+- 관계에서 주의할 패턴 설명
 
-## 6. 인간관계 / 연애 패턴
-### 인간관계
-- [대인관계 스타일과 특징 상세 설명]
-- [잘 맞는 사람 유형과 주의할 관계]
+### 연애 패턴 (5-7문장)
+- 재성/관성을 중심으로 연애 스타일 설명
+- 이상형의 특징 (구체적으로)
+- 연애할 때 나타나는 패턴
+- 좋은 관계를 위한 조언 ("~하면 더 좋은 관계를 만들 수 있습니다")
 
-### 연애 패턴
-- [연애 스타일과 특징]
-- [이상형과 연애 시 주의사항]
+---
 
-## 7. 직업/재물 운용 스타일
-### 직업·진로 성향
-- [적합한 직업 분야와 진로 방향 상세 설명]
-- [업무 스타일과 성공 전략]
+## 4. 직업 / 재물 운용 스타일
 
-### 돈·재물 감각
-- [재물운과 금전 관리 스타일]
-- [재테크 방향과 주의사항]
+### 직업·진로 성향 (6-8문장)
+- 월지와 시지의 십신을 중심으로 업무 스타일 설명
+- 오행과 신살을 바탕으로 적합한 직업 분야 3-5가지 제시
+- 조직 vs 독립 적성 설명
+- 커리어에서 성공하기 위한 전략 제시
 
-## 8. 한 줄 총평 및 핵심 키워드
-**총평**: [이 사람을 대표하는 한 줄 요약 - 타고난 장점을 강조하며 희망적인 메시지]
+### 돈·재물 감각 (5-7문장)
+- 재성의 유무와 위치로 재물운 패턴 설명
+- 돈을 버는 방식과 쓰는 방식의 특징
+- 재테크 스타일 (안정형/공격형/균형형)
+- 재물 관리 조언 ("~하면 재물을 지키는 데 도움이 됩니다")
 
-**핵심 키워드**: [키워드1], [키워드2], [키워드3]
+---
+
+## 5. 현재 고민에 대한 해석
+
+### 원인 (3-4문장)
+- 현재 세운과 대운을 바탕으로 지금 시기의 특징 설명
+- 왜 이런 고민이 생기는지 사주적 배경 설명
+
+### 반복되는 패턴 (3-4문장)
+- 사주 구조상 반복될 가능성이 있는 패턴 설명
+- 이 패턴이 나타나는 근본 원인
+
+### 전략 (4-5문장)
+- 이 시기를 어떻게 보내면 좋을지 구체적 전략 제시
+- "~할 때입니다" 대신 "~하면 도움이 될 것으로 보입니다" 사용
+
+---
+
+## 6. 실천 조언 3가지
+
+**조언 1: [제목]**
+- [구체적이고 실천 가능한 행동 지침]
+- [왜 이것이 도움이 되는지 간단히 설명]
+
+**조언 2: [제목]**
+- [구체적이고 실천 가능한 행동 지침]
+- [왜 이것이 도움이 되는지 간단히 설명]
+
+**조언 3: [제목]**
+- [구체적이고 실천 가능한 행동 지침]
+- [왜 이것이 도움이 되는지 간단히 설명]
 
 {"" if not is_student else f'''
 ---
 
 # 학생 전용 추가 풀이
 
-## 9. 문과/이과 성향
-### 진로 적성
-- [문과/이과/예체능 중 적합한 분야]
+## 7. 문과 / 이과 성향
 
-### 전공 추천
-- [추천 전공 1]: [이유]
-- [추천 전공 2]: [이유]
-- [추천 전공 3]: [이유]
+### 진로 적성 (4-5문장)
+- 오행과 십신 구성으로 문과/이과/예체능 적성 분석
+- 구체적인 이유와 근거 제시
 
-## 10. 잘하는 과목 / 취약한 과목
-### 잘하는 과목
-- [과목명]: [이유와 특징]
+### 전공 추천 (3가지, 각 2-3문장)
+**추천 1: [구체적 학과명]**
+- [왜 적합한지 사주적 근거]
+- [이 분야에서 어떤 강점을 발휘할 수 있는지]
 
-### 취약한 과목
-- [과목명]: [이유와 특징]
+**추천 2: [구체적 학과명]**
+- [왜 적합한지 사주적 근거]
+- [이 분야에서 어떤 강점을 발휘할 수 있는지]
 
-### 보완·강화 방법
-- [구체적인 학습 전략 3가지]
+**추천 3: [구체적 학과명]**
+- [왜 적합한지 사주적 근거]
+- [이 분야에서 어떤 강점을 발휘할 수 있는지]
 
-## 11. 공부 방법
-### 최적의 학습 환경
-- [자기주도학습/과외/대형학원 중 적합한 방식과 이유]
+---
 
-### 효과적인 공부 방법
-- [구체적인 학습 전략]
+## 8. 잘하는 과목들 / 취약한 과목들
 
-## 12. 앞으로 3년간 시험운/학업운
-### {datetime.now().year}년 ({saju_result.get('seun', {}).get('current', {}).get('나이', '-')}세)
-- [시험운과 학업운 전망]
+### 잘하는 과목들 (3-4과목, 각 2문장)
+**[구체적 과목명 1]**: [이유와 특징]
+**[구체적 과목명 2]**: [이유와 특징]
+**[구체적 과목명 3]**: [이유와 특징]
 
-### {datetime.now().year + 1}년
-- [시험운과 학업운 전망]
+### 취약한 과목들 (2-3과목, 각 2문장)
+**[구체적 과목명 1]**: [이유와 특징]
+**[구체적 과목명 2]**: [이유와 특징]
 
-### {datetime.now().year + 2}년
-- [시험운과 학업운 전망]
+### 보완·강화 방법 (5-6문장)
+- 취약 과목 보완 전략 2가지
+- 강한 과목 더 강화하는 방법 1가지
+- 전체적인 학습 밸런스 조언
 
-## 13. 지금 시기 고민에 대한 해석
-### 원인
-- [현재 고민의 사주적 원인 분석]
+---
 
-### 반복되는 패턴
-- [반복되는 문제의 근본 원인]
+## 9. 공부 방법
 
-### 전략
-- [문제 해결을 위한 전략]
+### 최적의 학습 환경 (4-5문장)
+- 자기주도학습 / 과외 / 대형학원 중 적합한 방식 선택
+- 왜 그 방식이 적합한지 사주적 근거 설명
+- 각 방식의 장단점을 이 사주에 맞춰 설명
 
-### 실천 조언 3가지
-1. [구체적 조언 1]
-2. [구체적 조언 2]
-3. [구체적 조언 3]
+### 효과적인 공부 전략 (5-6문장)
+- 집중력 패턴 (아침형/저녁형, 단기집중/장기지구력)
+- 암기 vs 이해 중 어느 쪽이 강한지
+- 혼자 vs 함께 중 어느 환경이 좋은지
+- 구체적인 공부 시간 배분 조언
+
+---
+
+## 10. 앞으로 3년간 시험운 / 학업운
+
+### {datetime.now().year}년 (현재, {saju_result['seun']['current']['나이']}세)
+- [현재 세운 분석 3-4문장]
+- [시험운과 학업 성취 가능성]
+- [이 시기 전략: "~하면 좋은 결과를 기대할 수 있습니다"]
+
+### {datetime.now().year + 1}년 ({saju_result['seun']['current']['나이'] + 1}세)
+- [다음 해 세운 분석 3-4문장]
+- [시험운과 학업 성취 가능성]
+- [이 시기 전략]
+
+### {datetime.now().year + 2}년 ({saju_result['seun']['current']['나이'] + 2}세)
+- [다다음 해 세운 분석 3-4문장]
+- [시험운과 학업 성취 가능성]
+- [이 시기 전략]
 '''}
 
 ---
 
-**중요**: 각 항목을 빠짐없이 작성하고, 추상적인 표현보다는 구체적이고 실용적인 조언을 제공해주세요. 사주팔자의 요소를 직접 언급하며 설명해주세요."""
+# 중요 지침
+
+1. **출생시간 없을 때**: {"시주 기반 해석은 '~일 가능성이 높습니다', '~한 경향을 보일 수 있습니다'처럼 확률 표현 사용" if time_unknown else "시주 정보 있음 - 정확히 분석"}
+
+2. **금지 표현**:
+   - ❌ "반드시 ~해야 합니다"
+   - ❌ "무조건 ~입니다"
+   - ❌ "절대 ~하지 마세요"
+   - ❌ "질병이 생깁니다"
+   - ❌ "사고가 날 것입니다"
+   
+3. **권장 표현**:
+   - ✅ "~한 경향이 있습니다"
+   - ✅ "~하면 도움이 될 수 있습니다"
+   - ✅ "~을 고려해보시면 좋겠습니다"
+   - ✅ "~한 패턴이 보입니다"
+
+4. **구체성**: 모든 조언은 실천 가능한 구체적 행동으로 표현
+
+5. **균형**: 장점과 단점을 균형있게, 희망적이되 현실적으로
+
+6. **공감**: 따뜻하고 이해하는 어조 유지"""
     
     try:
         response = openai.chat.completions.create(
-            model="gpt-4o",  # o1-mini → gpt-4o 변경
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            max_tokens=16000,  # max_completion_tokens 10000 → max_tokens 16000 (더 긴 응답)
+            max_tokens=16000,
             temperature=0.7
         )
         
         return response.choices[0].message.content
-    
-    except openai.AuthenticationError:
-        return "❌ OpenAI API 키가 유효하지 않습니다. Streamlit Secrets에서 올바른 API 키를 설정해주세요."
-    except openai.RateLimitError:
-        return "❌ API 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요."
+        
     except Exception as e:
-        return f"❌ 풀이 중 오류가 발생했습니다: {str(e)}"
+        return f"풀이 중 오류가 발생했습니다: {str(e)}"
 
 
-def get_followup_answer(saju_result: dict, conversation_history: list, user_question: str) -> str:
-    """GPT-4o를 사용한 추가 질문 답변"""
+def get_followup_answer(question: str, previous_interpretation: str, saju_info: str) -> str:
+    """
+    추가 질문 답변 (성향/패턴/전략 중심)
+    """
     
-    # 오행 개수
-    element_count = get_element_count(saju_result)
-    element_str = ", ".join([f"{k}: {v}개" for k, v in element_count.items()])
-    
-    # 사주 요약 정보
-    saju_summary = f"""## 생년월일시
-{saju_result['birth_date']}
+    system_prompt = """당신은 30년 경력의 전문 사주명리학자입니다.
 
-## 사주팔자
-- 연주: {saju_result['year_pillar']} ({saju_result['year_hanja']})
-- 월주: {saju_result['month_pillar']} ({saju_result['month_hanja']})
-- 일주: {saju_result['day_pillar']} ({saju_result['day_hanja']})
-- 시주: {saju_result['hour_pillar']} ({saju_result['hour_hanja']})
+## 답변 원칙
+- 점괘식 단정 대신 **성향/패턴/전략 중심**으로 답변
+- 단정적 표현("반드시/무조건") 최소화
+- 공포 조장, 의료/법률 단정 금지
+- 구체적이고 실천 가능한 조언 제공"""
+    
+    user_prompt = f"""## 이전 풀이
+{previous_interpretation}
 
-## 오행: {element_str}"""
-    
-    # 이전 대화 히스토리 구성
-    conversation_context = ""
-    if conversation_history:
-        conversation_context = "\n\n## 이전 대화 내용\n"
-        for item in conversation_history:
-            conversation_context += f"\n**질문**: {item['question']}\n**답변**: {item['answer']}\n"
-    
-    system_prompt = "당신은 30년 경력의 전문 사주명리학자입니다. 이전 풀이를 참고하여 추가 질문에 상세하고 구체적으로 답변해주세요."
-    
-    user_prompt = f"""{saju_summary}{conversation_context}
+## 사주 정보
+{saju_info}
 
 ## 추가 질문
-{user_question}
+{question}
 
-위 질문에 대해 사주 정보를 바탕으로 상세하고 구체적으로 답변해주세요. 
-답변은 3-5문장 이상으로 작성하고, 사주팔자의 구체적인 요소를 언급하며 설명해주세요."""
-    
+---
+
+위 질문에 대해 다음 원칙으로 답변해주세요:
+
+1. **성향/패턴 중심**: "~할 가능성이 높습니다", "~한 경향이 있습니다"
+2. **전략 제시**: "~하면 도움이 될 것입니다", "~을 고려해보세요"
+3. **구체적 조언**: 실천 가능한 행동 지침 제공
+4. **금지 표현**: "반드시", "무조건", "절대" 사용 금지
+
+답변은 5-7문장으로, 사주 요소를 구체적으로 언급하며 설명해주세요."""
+
     try:
         response = openai.chat.completions.create(
-            model="gpt-4o",  # o1-mini → gpt-4o 변경
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -370,13 +430,9 @@ def get_followup_answer(saju_result: dict, conversation_history: list, user_ques
         )
         
         return response.choices[0].message.content
-    
-    except openai.AuthenticationError:
-        return "❌ OpenAI API 키가 유효하지 않습니다."
-    except openai.RateLimitError:
-        return "❌ API 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요."
+        
     except Exception as e:
-        return f"❌ 답변 생성 중 오류가 발생했습니다: {str(e)}"
+        return f"추가 질문 처리 중 오류가 발생했습니다: {str(e)}"
 
 
 # 메인 UI
@@ -502,6 +558,7 @@ with col1:
         st.session_state['saju_calculated'] = True
         st.session_state['birth_datetime'] = birth_datetime
         st.session_state['gender'] = gender
+        st.session_state['occupation'] = occupation_type
         st.session_state['is_student'] = (occupation_type == "학생")
         st.session_state['grade_level'] = grade_level if occupation_type == "학생" else ""
         st.session_state['time_unknown'] = time_unknown
@@ -755,11 +812,12 @@ if st.session_state.get('saju_calculated', False):
                 # OpenAI 클라이언트 초기화
                 openai.api_key = st.secrets["OPENAI_API_KEY"]
                 
-                # 학생 모드 정보 가져오기
-                is_student = st.session_state.get('is_student', False)
-                grade_level = st.session_state.get('grade_level', '')
+                # 사주 풀이를 위한 정보 가져오기
+                gender = st.session_state.get('gender', '남')
+                occupation = st.session_state.get('occupation', '일반')
+                student_grade = st.session_state.get('grade_level', None)
                 
-                interpretation = get_saju_interpretation(result, is_student, grade_level)
+                interpretation = get_saju_interpretation(result, gender, occupation, student_grade)
                 
                 st.session_state['interpretation'] = interpretation
                 st.session_state['saju_result'] = result
@@ -822,11 +880,27 @@ AI 사주 풀이
                         # OpenAI API 키 설정
                         openai.api_key = st.secrets["OPENAI_API_KEY"]
                         
+                        # 사주 정보 문자열 생성
+                        saju_result = st.session_state['saju_result']
+                        saju_info = f"""## 생년월일시
+{saju_result['birth_date']}
+
+## 사주팔자
+- 연주: {saju_result['year_pillar']} ({saju_result['year_hanja']})
+- 월주: {saju_result['month_pillar']} ({saju_result['month_hanja']})
+- 일주: {saju_result['day_pillar']} ({saju_result['day_hanja']})
+- 시주: {saju_result['hour_pillar']} ({saju_result['hour_hanja']})
+
+## 오행: {' '.join([f'{k}: {v}개' for k, v in saju_result['elements'].items()])}"""
+                        
+                        # 이전 풀이 가져오기
+                        previous_interpretation = st.session_state.get('interpretation', '')
+                        
                         # 답변 생성
                         answer = get_followup_answer(
-                            st.session_state['saju_result'],
-                            st.session_state['conversation_history'],
-                            user_question
+                            user_question,
+                            previous_interpretation,
+                            saju_info
                         )
                         
                         # 대화 히스토리에 추가
