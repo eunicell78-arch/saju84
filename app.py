@@ -308,7 +308,7 @@ def get_saju_interpretation(saju_result: dict, is_student: bool = False, grade_l
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            max_tokens=16000,  # 10000 → 16000 (더 긴 응답)
+            max_tokens=16000,  # max_completion_tokens 10000 → max_tokens 16000 (더 긴 응답)
             temperature=0.7
         )
         
