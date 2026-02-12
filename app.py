@@ -107,129 +107,22 @@ with st.sidebar:
 
 
 def get_saju_interpretation(saju_result: dict, is_student: bool = False, grade_level: str = "") -> str:
-    """ChatGPT를 이용한 사주 풀이"""
+    """o1-mini 모델을 사용한 사주팔자 풀이"""
     
     # 오행 개수
     element_count = get_element_count(saju_result)
-    element_str = ", ".join([f"{k}: {v}개" for k, v in element_count.items()])
+    element_str = ' '.join([f'{k}: {v}개' for k, v in element_count.items()])
     
     # 시주 미상 여부 확인
     time_unknown = saju_result.get('time_unknown', False)
     
-    # 십신 정보
-    sipsin_str = ""
-    if 'sipsin' in saju_result:
-        sipsin_str = f"""
-## 십신 분포
-- 년간: {saju_result['sipsin']['year_stem']}
-- 월간: {saju_result['sipsin']['month_stem']}
-- 일간: {saju_result['sipsin']['day_stem']}
-- 시간: {saju_result['sipsin']['hour_stem']}
-"""
-    
-    # 12운성 정보
-    unsung_str = ""
-    if 'unsung' in saju_result:
-        unsung_str = f"""
-## 12운성
-- 년지: {saju_result['unsung']['year']}
-- 월지: {saju_result['unsung']['month']}
-- 일지: {saju_result['unsung']['day']}
-- 시지: {saju_result['unsung']['hour']}
-"""
-    
-    # 신살 정보
-    sinsal_str = ""
-    if 'sinsal' in saju_result:
-        sinsal_list = []
-        if saju_result['sinsal']['cheonul']:
-            sinsal_list.append(f"천을귀인: {', '.join(saju_result['sinsal']['cheonul'])}")
-        if saju_result['sinsal']['yeokma']:
-            sinsal_list.append(f"역마살: {', '.join(saju_result['sinsal']['yeokma'])}")
-        if saju_result['sinsal']['dohwa']:
-            sinsal_list.append(f"도화살: {', '.join(saju_result['sinsal']['dohwa'])}")
-        if saju_result['sinsal']['gongmang']:
-            sinsal_list.append(f"공망: {', '.join(saju_result['sinsal']['gongmang'])}")
-        
-        if sinsal_list:
-            sinsal_str = "## 신살\n" + "\n".join([f"- {s}" for s in sinsal_list])
-    
-    # 형충회합 정보
-    hch_str = ""
-    if 'hyungchunghap' in saju_result:
-        hch = saju_result['hyungchunghap']
-        hch_list = []
-        if hch['chung']:
-            hch_list.append(f"충(沖): {', '.join(hch['chung'])}")
-        if hch['yukhap']:
-            hch_list.append(f"육합(六合): {', '.join(hch['yukhap'])}")
-        if hch['samhap']:
-            hch_list.append(f"삼합(三合): {', '.join(hch['samhap'])}")
-        if hch['hyung']:
-            hch_list.append(f"형(刑): {', '.join(hch['hyung'])}")
-        
-        if hch_list:
-            hch_str = "## 형충회합\n" + "\n".join([f"- {h}" for h in hch_list])
-    
-    # 대운 정보
-    daeun_str = ""
-    if 'daeun' in saju_result:
-        daeun_str = f"""
-## 대운
-- 방향: {saju_result['daeun']['direction']}
-- 시작: {saju_result['daeun']['start_age']}세
-- 현재 대운 (예시): {saju_result['daeun']['list'][0]['간지']} ({saju_result['daeun']['list'][0]['나이']})
-"""
-    
-    # 세운 정보
-    seun_str = ""
-    if 'seun' in saju_result:
-        current = saju_result['seun']['current']
-        seun_str = f"""
-## 세운
-- 현재: {current['년도']}년 {current['간지']} ({current['나이']}세)
-"""
-    
-    # 학생 모드에 따른 추가 섹션
-    student_info = ""
-    student_sections = ""
-    if is_student:
-        student_info = f"\n\n## 학생 정보\n- 학년: {grade_level}"
-        student_sections = """
-### 8. 향후 3년간 학업운 및 시험운 흐름
-- **1년차**: 구체적인 학업 흐름, 중요 시험 시기, 집중 과목
-- **2년차**: 구체적인 학업 흐름, 중요 시험 시기, 집중 과목
-- **3년차**: 구체적인 학업 흐름, 중요 시험 시기, 집중 과목
-
-### 9. 진로적성 및 전공추천
-- **타고난 적성 분석**: (이과/문과/예체능/실용)
-- **추천 전공**: (구체적으로 3-5개, 각각 이유 포함)
-- **추천 진로 방향**: (구체적인 직업 3-5개)
-- **피해야 할 분야**
-"""
-    
-    # 시주 미상 안내 추가
-    time_info = ""
-    if time_unknown:
-        time_info = """
-
-⚠️ **출생 시간 미상**: 년주, 월주, 일주만으로 풀이합니다.
-시주가 없어 시간대별 운세와 일부 세부 정보는 제외되었습니다.
-"""
-    
-    # 풀이 요청사항에 추가할 시간 미상 지시사항
-    time_unknown_instruction = ""
-    if time_unknown:
-        time_unknown_instruction = """
-
-**중요**: 출생 시간을 모르므로 시주(時柱)가 없습니다. 년주, 월주, 일주만으로 풀이해주세요. 시간대별 운세는 제외하고, 3주 기반으로 최대한 상세히 풀이해주세요.
-"""
-    
-    prompt = f"""
-당신은 전문 사주 풀이 전문가입니다. 아래 형식에 따라 상세하고 희망적으로 풀이해주세요.
+    # o1-mini는 system role 미지원 → user role에 역할 명시
+    combined_prompt = f"""당신은 30년 경력의 전문 사주명리학자입니다.
+다음 사주팔자를 분석하여 체계적이고 상세하게 풀이해주세요.
 
 ## 생년월일시
-{saju_result['birth_date']}{student_info}{time_info}
+{saju_result['birth_date']}
+{'학년: ' + grade_level if is_student and grade_level else ''}
 
 ## 사주팔자
 - 연주(年柱): {saju_result['year_pillar']} ({saju_result['year_hanja']})
@@ -237,103 +130,182 @@ def get_saju_interpretation(saju_result: dict, is_student: bool = False, grade_l
 - 일주(日柱): {saju_result['day_pillar']} ({saju_result['day_hanja']})
 - 시주(時柱): {saju_result['hour_pillar']} ({saju_result['hour_hanja']}){"" if not time_unknown else " (출생 시간 미상)"}
 
-## 오행 분석
-- 천간: {', '.join(saju_result['stems_elements'])}
-- 지지: {', '.join(saju_result['branches_elements'])}
-- 오행 개수: {element_str}
+## 오행 분포
+{element_str}
 
-## 음양 분석
-- 천간: {', '.join(saju_result['stems_yin_yang'])}
-- 지지: {', '.join(saju_result['branches_yin_yang'])}
-{sipsin_str}{unsung_str}{sinsal_str}{hch_str}{daeun_str}{seun_str}
+## 십신(十神)
+- 연간: {saju_result.get('sipsin', {}).get('year_stem', '-')}
+- 월간: {saju_result.get('sipsin', {}).get('month_stem', '-')}
+- 일간: {saju_result.get('sipsin', {}).get('day_stem', '-')} (본인)
+- 시간: {saju_result.get('sipsin', {}).get('hour_stem', '-')}
 
-## 풀이 요청사항{time_unknown_instruction}
-**정확히 아래 형식과 순서에 따라 풀이해주세요:**
+## 12운성(十二運星)
+- 연지: {saju_result.get('unsung', {}).get('year', '-')}
+- 월지: {saju_result.get('unsung', {}).get('month', '-')}
+- 일지: {saju_result.get('unsung', {}).get('day', '-')}
+- 시지: {saju_result.get('unsung', {}).get('hour', '-')}
 
-### 1. 사주 구성
-- **생년월일**: {saju_result['birth_date']} (양력 기준){f"""
-- **시간**: 미상 (3주 기반 풀이)""" if time_unknown else ""}
-- **사주 구성**: 
-  * 년주(年柱): {saju_result['year_pillar']} ({saju_result['year_hanja']})
-  * 월주(月柱): {saju_result['month_pillar']} ({saju_result['month_hanja']})
-  * 일주(日柱): {saju_result['day_pillar']} ({saju_result['day_hanja']})
-  * 시주(時柱): {saju_result['hour_pillar']} ({saju_result['hour_hanja']}){" (출생 시간 미상)" if time_unknown else ""}
-- **일간(日干) 설명**: 일간의 의미와 특성을 설명
-- **오행 분포**: 목/화/토/금/수 각각의 개수와 균형 상태 분석
+## 신살(神殺)
+- 천을귀인: {', '.join(saju_result.get('sinsal', {}).get('cheonul', [])) if saju_result.get('sinsal', {}).get('cheonul') else '없음'}
+- 역마살: {', '.join(saju_result.get('sinsal', {}).get('yeokma', [])) if saju_result.get('sinsal', {}).get('yeokma') else '없음'}
+- 도화살: {', '.join(saju_result.get('sinsal', {}).get('dohwa', [])) if saju_result.get('sinsal', {}).get('dohwa') else '없음'}
+- 공망: {', '.join(saju_result.get('sinsal', {}).get('gongmang', [])) if saju_result.get('sinsal', {}).get('gongmang') else '없음'}
 
-### 2. 주요 귀인과 살성
-- **길신(吉神) 풀이**: 천을귀인, 문창귀인 등 긍정적인 신살과 그 영향
-- **흉살(凶殺) 풀이**: 백호살, 역마살 등 주의해야 할 살과 그 영향
-- 각 귀인과 살이 인생에 미치는 **구체적 영향, 의미, 활용/대응 방법**을 상세히 설명
+## 대운(大運)
+- 방향: {saju_result.get('daeun', {}).get('direction', '-')}
+- 시작: {saju_result.get('daeun', {}).get('start_age', '-')}세
 
-### 3. 성격 및 기질 분석
-- **외향/내향 성향**: 어느 쪽에 가까운지 (3-5개의 구체적인 예시 포함)
-- **이성/감성 비율**: 논리적인지 감성적인지 (3-5개의 구체적인 예시 포함)
-- **주도성, 분석력, 감수성, 리더십** 등의 특성 (3-5개의 구체적인 예시 포함)
-- **대인관계 스타일**: 타인과 어떻게 소통하는지 (3-5개의 구체적인 예시 포함)
+---
 
-### 4. 평생운세
-- **유년기 (0-20세)**: 주요 운세와 특징
-- **청년기 (20-40세)**: 주요 운세와 전환점
-- **중년기 (40-60세)**: 주요 운세와 성취
-- **노년기 (60세 이후)**: 주요 운세와 안정
-- 각 시기의 주요 운세와 전환점을 상세히 설명
+# 풀이 양식
 
-### 5. 진로와 적성
-- **타고난 재능과 강점**: 어떤 분야에 재능이 있는지
-- **적성 직업 추천**: 구체적으로 5-7개의 직업 제시
-- **추천 분야**: 기술직, 창작, 관리직, 서비스직 등 적합한 분야
-- **피해야 할 직업 유형**: 맞지 않는 직업 유형과 이유
+아래 양식에 맞춰 상세하고 구체적으로 풀이해주세요. 각 항목은 최소 3-5문장 이상으로 작성하고, 사주팔자의 구체적인 요소를 언급하며 설명해주세요.
 
-### 6. 올해 운세
-- **월별 세부 운세**: 1월부터 12월까지 각 달의 재물운, 건강운, 대인관계를 모두 포함하여 설명
-  * 1월: 
-  * 2월:
-  * 3월:
-  * 4월:
-  * 5월:
-  * 6월:
-  * 7월:
-  * 8월:
-  * 9월:
-  * 10월:
-  * 11월:
-  * 12월:
-- **재물운**: 수입, 투자, 지출 주의사항
-- **건강운**: 주의해야 할 건강 이슈
-- **올해 중요한 시기와 조심할 시기**
+## 1. 사주 구성
+### 생년월일
+- {saju_result['birth_date']}
 
-### 7. 한 줄 총평 및 핵심 키워드
-- **총평**: 이 사람을 대표하는 성향 요약 (1-2문장, **타고난 장점을 강조**하여 **희망적인 메시지** 전달)
-- **핵심 키워드**: 3-5개 (예: "창의력", "리더십", "성실함")
-{student_sections}
+### 사주구성
+- 년주(年柱): {saju_result['year_pillar']} - [의미와 영향 설명]
+- 월주(月柱): {saju_result['month_pillar']} - [의미와 영향 설명]
+- 일주(日柱): {saju_result['day_pillar']} - [의미와 영향 설명]
+- 시주(時柱): {saju_result['hour_pillar']} - [의미와 영향 설명]
 
-**중요 지침:**
-1. 모든 내용은 한국어로 작성
-2. 긍정적이고 희망적인 톤 유지
-3. 각 섹션을 명확히 구분하여 작성
-4. 월별 운세는 12개월 모두 포함하고, 각 달마다 재물운, 건강운, 대인관계를 모두 설명
-5. 타고난 장점과 가능성을 강조
-6. 각 항목은 최소 3-5개의 구체적인 예시와 함께 설명
-7. 귀인과 살성은 각각의 의미, 인생에 미치는 영향, 활용/대응 방법을 상세히 설명
-"""
+### 일간(日干)
+- 일간은 {saju_result['day_pillar'][0]}입니다
+- [일간의 특성과 의미 상세 설명]
+
+### 오행분포
+- {element_str}
+- [오행의 균형/불균형 분석 및 영향]
+
+## 2. 주요 귀인과 살성
+### 길신과 흉살 풀이
+- [천을귀인, 역마살, 도화살 등의 의미와 영향 상세 설명]
+
+### 귀인과 살을 중심으로 인생에 어떠한 영향이 있는지
+- [구체적인 인생 패턴과 영향력 분석]
+
+## 3. 평생운세
+### 초년운(0-30세)
+- [초년의 전반적인 운세와 주요 사건 경향]
+
+### 중년운(30-60세)
+- [중년의 전반적인 운세와 주요 사건 경향]
+
+### 말년운(60세 이후)
+- [말년의 전반적인 운세와 주요 사건 경향]
+
+## 4. 핵심성향 3줄 요약
+1. [첫 번째 핵심 성향]
+2. [두 번째 핵심 성향]
+3. [세 번째 핵심 성향]
+
+## 5. 기질과 심리 패턴
+### 기본 기질
+- [타고난 성격과 기질 상세 설명]
+
+### 강점
+- [장점 1]: [구체적 설명]
+- [장점 2]: [구체적 설명]
+- [장점 3]: [구체적 설명]
+
+### 약점/주의할 점
+- [약점 1]: [구체적 설명 및 개선 방안]
+- [약점 2]: [구체적 설명 및 개선 방안]
+- [약점 3]: [구체적 설명 및 개선 방안]
+
+## 6. 인간관계 / 연애 패턴
+### 인간관계
+- [대인관계 스타일과 특징 상세 설명]
+- [잘 맞는 사람 유형과 주의할 관계]
+
+### 연애 패턴
+- [연애 스타일과 특징]
+- [이상형과 연애 시 주의사항]
+
+## 7. 직업/재물 운용 스타일
+### 직업·진로 성향
+- [적합한 직업 분야와 진로 방향 상세 설명]
+- [업무 스타일과 성공 전략]
+
+### 돈·재물 감각
+- [재물운과 금전 관리 스타일]
+- [재테크 방향과 주의사항]
+
+## 8. 한 줄 총평 및 핵심 키워드
+**총평**: [이 사람을 대표하는 한 줄 요약 - 타고난 장점을 강조하며 희망적인 메시지]
+
+**핵심 키워드**: [키워드1], [키워드2], [키워드3]
+
+{"" if not is_student else f'''
+---
+
+# 학생 전용 추가 풀이
+
+## 9. 문과/이과 성향
+### 진로 적성
+- [문과/이과/예체능 중 적합한 분야]
+
+### 전공 추천
+- [추천 전공 1]: [이유]
+- [추천 전공 2]: [이유]
+- [추천 전공 3]: [이유]
+
+## 10. 잘하는 과목 / 취약한 과목
+### 잘하는 과목
+- [과목명]: [이유와 특징]
+
+### 취약한 과목
+- [과목명]: [이유와 특징]
+
+### 보완·강화 방법
+- [구체적인 학습 전략 3가지]
+
+## 11. 공부 방법
+### 최적의 학습 환경
+- [자기주도학습/과외/대형학원 중 적합한 방식과 이유]
+
+### 효과적인 공부 방법
+- [구체적인 학습 전략]
+
+## 12. 앞으로 3년간 시험운/학업운
+### {datetime.now().year}년 ({saju_result.get('seun', {}).get('current', {}).get('나이', '-')}세)
+- [시험운과 학업운 전망]
+
+### {datetime.now().year + 1}년
+- [시험운과 학업운 전망]
+
+### {datetime.now().year + 2}년
+- [시험운과 학업운 전망]
+
+## 13. 지금 시기 고민에 대한 해석
+### 원인
+- [현재 고민의 사주적 원인 분석]
+
+### 반복되는 패턴
+- [반복되는 문제의 근본 원인]
+
+### 전략
+- [문제 해결을 위한 전략]
+
+### 실천 조언 3가지
+1. [구체적 조언 1]
+2. [구체적 조언 2]
+3. [구체적 조언 3]
+'''}
+
+---
+
+**중요**: 각 항목을 빠짐없이 작성하고, 추상적인 표현보다는 구체적이고 실용적인 조언을 제공해주세요. 사주팔자의 요소를 직접 언급하며 설명해주세요."""
     
     try:
         response = openai.chat.completions.create(
-            model="gpt-4o",
+            model="o1-mini",
             messages=[
-                {"role": "system", "content": """당신은 30년 경력의 전문 사주명리학자입니다.
-
-다음 규칙을 엄격히 준수하여 풀이해주세요:
-1. 각 섹션마다 최소 5-7문장으로 구체적으로 작성
-2. 월별 운세는 1월부터 12월까지 반드시 모두 포함
-3. 귀인과 살성은 구체적인 영향과 대응 방법까지 설명
-4. 직업 추천은 5-7개의 구체적인 직업명 제시
-5. 모든 내용은 희망적이고 긍정적인 톤으로 작성"""},
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": combined_prompt}
             ],
-            temperature=0.7,
-            max_tokens=10000
+            max_completion_tokens=10000
         )
         
         return response.choices[0].message.content
@@ -347,15 +319,14 @@ def get_saju_interpretation(saju_result: dict, is_student: bool = False, grade_l
 
 
 def get_followup_answer(saju_result: dict, conversation_history: list, user_question: str) -> str:
-    """사주 정보를 바탕으로 추가 질문에 답변"""
+    """o1-mini 모델을 사용한 추가 질문 처리"""
     
     # 오행 개수
     element_count = get_element_count(saju_result)
     element_str = ", ".join([f"{k}: {v}개" for k, v in element_count.items()])
     
     # 사주 요약 정보
-    saju_summary = f"""
-## 생년월일시
+    saju_summary = f"""## 생년월일시
 {saju_result['birth_date']}
 
 ## 사주팔자
@@ -364,28 +335,33 @@ def get_followup_answer(saju_result: dict, conversation_history: list, user_ques
 - 일주: {saju_result['day_pillar']} ({saju_result['day_hanja']})
 - 시주: {saju_result['hour_pillar']} ({saju_result['hour_hanja']})
 
-## 오행: {element_str}
-"""
+## 오행: {element_str}"""
     
-    # 대화 히스토리 구성
-    messages = [
-        {"role": "system", "content": f"당신은 전문 사주명리학자입니다. 다음 사주 정보를 참고하여 질문에 답변해주세요.\n\n{saju_summary}"}
-    ]
+    # 이전 대화 히스토리 구성
+    conversation_context = ""
+    if conversation_history:
+        conversation_context = "\n\n## 이전 대화 내용\n"
+        for item in conversation_history:
+            conversation_context += f"\n**질문**: {item['question']}\n**답변**: {item['answer']}\n"
     
-    # 이전 대화 히스토리 추가
-    for item in conversation_history:
-        messages.append({"role": "user", "content": item["question"]})
-        messages.append({"role": "assistant", "content": item["answer"]})
-    
-    # 현재 질문 추가
-    messages.append({"role": "user", "content": user_question})
+    # o1-mini는 system role 미지원 → user role에 모든 내용 통합
+    combined_prompt = f"""당신은 30년 경력의 전문 사주명리학자입니다.
+
+{saju_summary}{conversation_context}
+
+## 추가 질문
+{user_question}
+
+위 질문에 대해 사주 정보를 바탕으로 상세하고 구체적으로 답변해주세요. 
+답변은 3-5문장 이상으로 작성하고, 사주팔자의 구체적인 요소를 언급하며 설명해주세요."""
     
     try:
         response = openai.chat.completions.create(
-            model="gpt-4o",
-            messages=messages,
-            temperature=0.7,
-            max_tokens=3000
+            model="o1-mini",
+            messages=[
+                {"role": "user", "content": combined_prompt}
+            ],
+            max_completion_tokens=3000
         )
         
         return response.choices[0].message.content
