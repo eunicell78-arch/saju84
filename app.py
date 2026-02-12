@@ -5,6 +5,7 @@ Saju (Four Pillars) Calculator with AI Interpretation
 import streamlit as st
 import secrets as secrets_module
 from datetime import datetime
+from typing import Optional
 from saju_calculator import calculate_four_pillars, get_element_count
 
 # OpenAI 임포트 (선택적)
@@ -106,13 +107,17 @@ with st.sidebar:
         st.rerun()
 
 
-def get_saju_interpretation(saju_result: dict, gender: str, occupation: str, student_grade: str = None) -> str:
+def get_saju_interpretation(saju_result: dict, gender: str, occupation: str, student_grade: Optional[str] = None) -> str:
     """
     GPT-4o 모델을 사용한 사주팔자 풀이 (성향/패턴/전략 중심)
     """
     
     is_student = occupation == "학생" and student_grade is not None and student_grade != ""
     time_unknown = saju_result.get('time_unknown', False) or saju_result.get('hour_pillar') == '시간미상'
+    
+    # 오행 개수 계산
+    element_count = get_element_count(saju_result)
+    elements_str = ' '.join([f'{k}: {v}개' for k, v in element_count.items()])
     
     # 시스템 프롬프트
     system_prompt = """당신은 30년 경력의 전문 사주명리학자입니다.
@@ -129,13 +134,19 @@ def get_saju_interpretation(saju_result: dict, gender: str, occupation: str, stu
 - 장단점을 균형있게 설명
 - 희망적이면서도 현실적인 메시지"""
     
+    # 학생 모드인 경우 나이 정보 추출
+    current_age = saju_result.get('seun', {}).get('current', {}).get('나이', '-')
+    
     # 사용자 프롬프트
+    occupation_info = f'학년: {student_grade}' if is_student else f'직업: {occupation}'
+    current_year = datetime.now().year
+    
     user_prompt = f"""다음 사주팔자를 분석하여 아래 양식에 맞춰 풀이해주세요.
 
 ## 생년월일시
 {saju_result['birth_date']}
 성별: {gender}
-{'학년: ' + student_grade if is_student else '직업: ' + occupation}
+{occupation_info}
 {'⚠️ 출생시간 정보 없음 (시주 기반 해석은 확률로 표현)' if time_unknown else ''}
 
 ## 사주팔자
@@ -145,7 +156,7 @@ def get_saju_interpretation(saju_result: dict, gender: str, occupation: str, stu
 - 시주(時柱): {saju_result['hour_pillar']} ({saju_result['hour_hanja']})
 
 ## 오행 분포
-{' '.join([f'{k}: {v}개' for k, v in saju_result.get('elements', {}).items()])}
+{elements_str}
 
 ## 십신(十神)
 - 연간: {saju_result.get('sipsin', {}).get('year_stem', '-')}
@@ -327,17 +338,17 @@ def get_saju_interpretation(saju_result: dict, gender: str, occupation: str, stu
 
 ## 10. 앞으로 3년간 시험운 / 학업운
 
-### {datetime.now().year}년 (현재, {saju_result.get('seun', {}).get('current', {}).get('나이', '-')}세)
+### {current_year}년 (현재, {current_age}세)
 - [현재 세운 분석 3-4문장]
 - [시험운과 학업 성취 가능성]
 - [이 시기 전략: "~하면 좋은 결과를 기대할 수 있습니다"]
 
-### {datetime.now().year + 1}년 ({saju_result.get('seun', {}).get('current', {}).get('나이', 0) + 1}세)
+### {current_year + 1}년 ({current_age + 1 if isinstance(current_age, int) else '-'}세)
 - [다음 해 세운 분석 3-4문장]
 - [시험운과 학업 성취 가능성]
 - [이 시기 전략]
 
-### {datetime.now().year + 2}년 ({saju_result.get('seun', {}).get('current', {}).get('나이', 0) + 2}세)
+### {current_year + 2}년 ({current_age + 2 if isinstance(current_age, int) else '-'}세)
 - [다다음 해 세운 분석 3-4문장]
 - [시험운과 학업 성취 가능성]
 - [이 시기 전략]
@@ -882,6 +893,8 @@ AI 사주 풀이
                         
                         # 사주 정보 문자열 생성
                         saju_result = st.session_state['saju_result']
+                        element_count = get_element_count(saju_result)
+                        elements_str = ' '.join([f'{k}: {v}개' for k, v in element_count.items()])
                         saju_info = f"""## 생년월일시
 {saju_result['birth_date']}
 
@@ -891,7 +904,7 @@ AI 사주 풀이
 - 일주: {saju_result['day_pillar']} ({saju_result['day_hanja']})
 - 시주: {saju_result['hour_pillar']} ({saju_result['hour_hanja']})
 
-## 오행: {' '.join([f'{k}: {v}개' for k, v in saju_result.get('elements', {}).items()])}"""
+## 오행: {elements_str}"""
                         
                         # 이전 풀이 가져오기
                         previous_interpretation = st.session_state.get('interpretation', '')
