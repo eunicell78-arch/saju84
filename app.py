@@ -149,18 +149,18 @@ def get_saju_interpretation(saju_result: dict, gender: str, occupation: str, stu
 - 시주(時柱): {saju_result['hour_pillar']} ({saju_result['hour_hanja']})
 
 ## 오행 분포
-{' '.join([f'{k}: {v}개' for k, v in saju_result['elements'].items()])}
+{' '.join([f'{k}: {v}개' for k, v in saju_result.get('elements', {}).items()])}
 
 ## 십신(十神)
-- 연간: {saju_result['sipsin']['year_stem']}
-- 월간: {saju_result['sipsin']['month_stem']}
-- 일간: {saju_result['sipsin']['day_stem']} (본인)
-- 시간: {saju_result['sipsin']['hour_stem']}
+- 연간: {saju_result.get('sipsin', {}).get('year_stem', '-')}
+- 월간: {saju_result.get('sipsin', {}).get('month_stem', '-')}
+- 일간: {saju_result.get('sipsin', {}).get('day_stem', '-')} (본인)
+- 시간: {saju_result.get('sipsin', {}).get('hour_stem', '-')}
 
 ## 신살(神殺)
-- 천을귀인: {', '.join(saju_result['sinsal']['cheonul']) if saju_result['sinsal']['cheonul'] else '없음'}
-- 역마살: {', '.join(saju_result['sinsal']['yeokma']) if saju_result['sinsal']['yeokma'] else '없음'}
-- 도화살: {', '.join(saju_result['sinsal']['dohwa']) if saju_result['sinsal']['dohwa'] else '없음'}
+- 천을귀인: {', '.join(saju_result.get('sinsal', {}).get('cheonul', [])) if saju_result.get('sinsal', {}).get('cheonul') else '없음'}
+- 역마살: {', '.join(saju_result.get('sinsal', {}).get('yeokma', [])) if saju_result.get('sinsal', {}).get('yeokma') else '없음'}
+- 도화살: {', '.join(saju_result.get('sinsal', {}).get('dohwa', [])) if saju_result.get('sinsal', {}).get('dohwa') else '없음'}
 
 ---
 
