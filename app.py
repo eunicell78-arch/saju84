@@ -282,7 +282,7 @@ A → B → C → D 사이클
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            max_tokens=4500,  # Increased to 4500 to accommodate full 10-section output for students
+            max_tokens=4500,  # Increased to 4500 to accommodate full output (10 sections for students: 6 general + 4 student-specific)
             temperature=0.75
         )
         
