@@ -122,13 +122,15 @@ def calculate_daeun_start_age(birth_date: datetime, gender: str, year_stem: str,
     if days_diff > 300:
         # 너무 크면 월 단위로 다시 계산 (간단한 근사)
         # 보통 15~45일 사이여야 정상
-        days_diff = 15 + (hash(str(birth_date)) % 30)  # 15~45일 범위로 조정
+        print(f"Warning: Abnormal days_diff={days_diff} detected for {birth_date}. Using fallback calculation.")
+        days_diff = 15 + ((birth_month * birth_day) % 30)  # 15~45일 범위로 조정 (결정적)
     
     # 3일 = 1년 계산 (전통 방식)
     years = days_diff // 3
     remaining_days = days_diff % 3
     
-    # 1일 이상이면 반올림하여 1년 추가 (전통적으로 1일=4개월 개념)
+    # 1일 이상이면 반올림하여 1년 추가
+    # 전통적으로 나머지 1~2일도 중요하게 취급하므로 1일부터 반올림
     if remaining_days >= 1:
         daeun_age = years + 1
     else:
