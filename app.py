@@ -112,6 +112,7 @@ def get_saju_interpretation(saju_result: dict, gender: str, occupation: str, stu
     GPT-4o 모델을 사용한 사주팔자 풀이 (성향/패턴/전략 중심)
     """
     
+    # 학생 여부 판단: 직업이 '학생'이고, 학년 정보가 유효한 경우
     is_student = occupation == "학생" and student_grade is not None and student_grade != ""
     time_unknown = saju_result.get('time_unknown', False) or saju_result.get('hour_pillar') == '시간미상'
     
@@ -134,13 +135,19 @@ def get_saju_interpretation(saju_result: dict, gender: str, occupation: str, stu
 - 장단점을 균형있게 설명
 - 희망적이면서도 현실적인 메시지"""
     
-    # 학생 모드인 경우 나이 정보 추출
+    # 학생 모드인 경우 나이 정보 추출 및 변환
     current_age_raw = saju_result.get('seun', {}).get('current', {}).get('나이', '-')
-    # 나이를 정수로 변환 시도, 실패하면 '-'로 설정
     try:
-        current_age = int(current_age_raw) if current_age_raw != '-' else '-'
+        current_age = int(current_age_raw)
     except (ValueError, TypeError):
         current_age = '-'
+    
+    # 나이 포맷팅 헬퍼
+    def format_age(age, offset=0):
+        """나이를 포맷팅 (정수인 경우 offset 적용)"""
+        if isinstance(age, int):
+            return age + offset
+        return '-'
     
     # 사용자 프롬프트
     occupation_info = f'학년: {student_grade}' if is_student else f'직업: {occupation}'
@@ -348,12 +355,12 @@ def get_saju_interpretation(saju_result: dict, gender: str, occupation: str, stu
 - [시험운과 학업 성취 가능성]
 - [이 시기 전략: "~하면 좋은 결과를 기대할 수 있습니다"]
 
-### {current_year + 1}년 ({current_age + 1 if isinstance(current_age, int) else '-'}세)
+### {current_year + 1}년 ({format_age(current_age, 1)}세)
 - [다음 해 세운 분석 3-4문장]
 - [시험운과 학업 성취 가능성]
 - [이 시기 전략]
 
-### {current_year + 2}년 ({current_age + 2 if isinstance(current_age, int) else '-'}세)
+### {current_year + 2}년 ({format_age(current_age, 2)}세)
 - [다다음 해 세운 분석 3-4문장]
 - [시험운과 학업 성취 가능성]
 - [이 시기 전략]
