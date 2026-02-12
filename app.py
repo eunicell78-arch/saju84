@@ -3,6 +3,7 @@
 Saju (Four Pillars) Calculator with AI Interpretation
 """
 import streamlit as st
+import secrets as secrets_module
 from datetime import datetime
 from saju_calculator import calculate_four_pillars, get_element_count
 
@@ -44,7 +45,7 @@ if not st.session_state.authenticated:
         login_button = st.button("🔓 로그인", use_container_width=True)
     
     if login_button:
-        if password == st.secrets["APP_PASSWORD"]:
+        if secrets_module.compare_digest(password, st.secrets["APP_PASSWORD"]):
             st.session_state.authenticated = True
             st.success("✅ 로그인 성공!")
             st.rerun()
@@ -61,7 +62,7 @@ if not st.session_state.authenticated:
 
 # 페이지 설정
 st.set_page_config(
-    page_title="사주팔자 만세력 계정기",
+    page_title="사주팔자 만세력 계산기",
     page_icon="🔮",
     layout="wide"
 )
