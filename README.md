@@ -86,6 +86,33 @@ OpenAI GPT-4를 활용한 전문적인 사주 해석:
 
 **천을귀인 만세력 v5.05와 100% 일치 확인됨**
 
+## 🔐 보안 설정
+
+이 앱은 패스워드 인증이 필요합니다.
+
+### Streamlit Cloud 배포 시
+
+1. Streamlit Cloud 대시보드에서 앱 선택
+2. **Settings** → **Secrets** 탭으로 이동
+3. 다음 설정 추가:
+
+```toml
+OPENAI_API_KEY = "your-openai-api-key"
+APP_PASSWORD = "your-secure-password"
+```
+
+4. **Save** 클릭
+
+### 로컬 실행 시
+
+1. `.streamlit/secrets.toml` 파일 생성
+2. `.streamlit/secrets.toml.example`의 내용을 복사하여 실제 값 입력
+3. 패스워드는 **절대 GitHub에 커밋하지 마세요**
+
+### 패스워드 변경
+
+Streamlit Cloud Secrets에서 `APP_PASSWORD` 값을 변경하면 즉시 적용됩니다.
+
 ## 🚀 빠른 시작
 
 ### 로컬 실행
@@ -101,7 +128,7 @@ cd saju84
 pip install -r requirements.txt
 ```
 
-3. **OpenAI API 키 설정**
+3. **OpenAI API 키 및 패스워드 설정**
 
 `.streamlit/secrets.toml` 파일 생성:
 ```bash
@@ -112,6 +139,7 @@ cp .streamlit/secrets.toml.example .streamlit/secrets.toml
 `.streamlit/secrets.toml` 파일 편집:
 ```toml
 OPENAI_API_KEY = "sk-your-actual-api-key-here"
+APP_PASSWORD = "your-secure-password-here"
 ```
 
 > OpenAI API 키는 [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)에서 발급받을 수 있습니다.
@@ -142,6 +170,7 @@ git push origin main
 6. 다음 내용 입력:
    ```toml
    OPENAI_API_KEY = "sk-your-actual-api-key-here"
+   APP_PASSWORD = "your-secure-password-here"
    ```
 7. **Deploy** 클릭
 
