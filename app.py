@@ -116,6 +116,8 @@ def get_saju_interpretation(saju_result: dict, gender: str, occupation: str, stu
     time_unknown = saju_result.get('hour_pillar') == '시간미상' or saju_result.get('time_unknown', False)
     
     # 새로운 시스템 프롬프트
+    # Note: Using English for system instructions is intentional - GPT models often
+    # follow English instructions more reliably even when generating Korean output
     system_prompt = """You are a professional Saju consultant and life-strategy analyst.
 
 You do NOT act as a fortune teller.
@@ -153,7 +155,7 @@ Example:
 "겉으로는 괜찮은 척하지만, 밤에 혼자 대화를 되짚는다."
 
 4. Ban Generic Language
-Do NOT use:
+Do NOT use the following terms as they are vague, non-actionable expressions:
 노력, 긍정, 열심히, 성공, 운이 좋다, 운이 나쁘다, 잘 될 것이다
 
 5. Action Design Rule
@@ -346,7 +348,7 @@ Avoid mystical vocabulary."""
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            max_tokens=3000,
+            max_tokens=4000,  # Increased to 4000 to accommodate full 7-section output for students
             temperature=0.8
         )
         
@@ -400,7 +402,7 @@ Answer Style:
 - 구체적 상황과 행동 패턴으로 설명
 - 실천 가능한 조언 포함
 - 감정적 공감 표현
-- 금지 단어 사용 금지: 노력, 긍정, 열심히, 성공, 운이 좋다, 운이 나쁠 것이다
+- 금지 단어 사용 금지: 노력, 긍정, 열심히, 성공, 운이 좋다, 운이 나쁘다, 잘 될 것이다
 - 따뜻하고 현실적인 멘토 어조
 
 5-8문장 정도로, 사주 구조를 구체적으로 언급하며 답변해주세요."""
@@ -412,7 +414,7 @@ Answer Style:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            max_tokens=3000,
+            max_tokens=2000,  # Followup answers are shorter, 2000 is sufficient
             temperature=0.8
         )
         
