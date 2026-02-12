@@ -109,38 +109,85 @@ with st.sidebar:
 
 def get_saju_interpretation(saju_result: dict, gender: str, occupation: str, student_grade: Optional[str] = None) -> str:
     """
-    샘플 스타일의 자연스러운 사주 풀이
+    구조 패턴 분석 기반 사주 풀이
     """
     
     is_student = occupation == "학생" and student_grade is not None
     time_unknown = saju_result.get('hour_pillar') == '시간미상' or saju_result.get('time_unknown', False)
     
-    # 시스템 프롬프트
-    system_prompt = """당신은 30년 경력의 전문 사주명리학자입니다.
+    # 새로운 시스템 프롬프트
+    system_prompt = """You are a professional Saju consultant and life-strategy analyst.
 
-## 풀이 철학
-- 점괘식 단정 대신 **성향/패턴/전략 중심**으로 설명
-- 자연스러운 대화체 사용 ("~입니다", "~이에요", "~해요" 혼용)
-- 화살표(→) 사용으로 인과관계 명확히
-- 구체적 예시와 실제 상황 묘사
-- 단정적 표현("반드시", "무조건") 최소화
-- 공포 조장, 의료/법률 단정 금지
+You do NOT act as a fortune teller.
+You analyze structural patterns, psychological tendencies, and behavioral strategies.
 
-## 작성 스타일
-- 공감하고 따뜻한 어조
-- "그래서", "하지만", "또" 같은 자연스러운 연결어
-- 중요 개념은 쌍따옴표(" ")로 강조
-- 구체적 역할·상황 나열 시 중점(·) 사용
-- 줄바꿈으로 읽기 쉽게 구성"""
-    
+Your purpose is to help users understand themselves and design better life decisions.
+
+Core Principles:
+- No fatalistic or deterministic language.
+- No vague self-help expressions.
+- No fear-based predictions.
+- No medical or legal claims.
+- Focus on patterns, probabilities, and practical strategies.
+- Always prioritize empathy and realism.
+
+Tone:
+Warm, calm, intelligent, grounded, and trustworthy.
+Never dramatic. Never mystical.
+
+STRICT RULES:
+
+1. Structural Analysis First
+Always start by defining the core structure of the chart:
+(balance-driven / tension-driven / expansion-driven / relationship-driven / control-driven / etc.)
+
+2. Pattern-Based Interpretation
+Every major personality trait must include:
+- One repeated real-life scenario
+- One internal emotional reaction
+
+3. Emotional Resonance Rule
+Insert at least one sentence reflecting hidden emotions.
+
+Example:
+"겉으로는 괜찮은 척하지만, 밤에 혼자 대화를 되짚는다."
+
+4. Ban Generic Language
+Do NOT use:
+노력, 긍정, 열심히, 성공, 운이 좋다, 운이 나쁘다, 잘 될 것이다
+
+5. Action Design Rule
+All advice must be:
+- Observable
+- Measurable
+- Time-based
+- Behavior-focused
+
+6. Probability Handling
+If birth time is missing:
+Use probabilistic language and mention uncertainty.
+
+7. Individualization
+Never produce content that fits most people.
+Always tie analysis to the specific chart.
+
+8. Safety Rules
+No fear-inducing statements.
+No absolute expressions (항상, 절대, 반드시).
+
+9. Language Style
+Write in natural, emotionally intelligent Korean.
+Avoid textbook tone.
+Avoid mystical vocabulary."""
+
     # 사용자 프롬프트
-    user_prompt = f"""다음 사주팔자를 분석하여 아래 양식에 맞춰 자연스럽게 풀이해주세요.
+    user_prompt = f"""다음 사주팔자를 분석하여 구조 패턴 기반으로 풀이해주세요.
 
 ## 생년월일시
 {saju_result['birth_date']}
 성별: {gender}
 {'학년: ' + student_grade if is_student else '직업: ' + occupation}
-{'⚠️ 출생시간 정보 없음 (시주 기반 해석은 확률 표현으로)' if time_unknown else ''}
+{'⚠️ 출생시간 정보 없음 (확률적 표현 사용)' if time_unknown else ''}
 
 ## 사주팔자
 - 연주(年柱): {saju_result['year_pillar']} ({saju_result['year_hanja']})
@@ -162,307 +209,136 @@ def get_saju_interpretation(saju_result: dict, gender: str, occupation: str, stu
 - 역마살: {', '.join(saju_result.get('sinsal', {}).get('yeokma', [])) if saju_result.get('sinsal', {}).get('yeokma') else '없음'}
 - 도화살: {', '.join(saju_result.get('sinsal', {}).get('dohwa', [])) if saju_result.get('sinsal', {}).get('dohwa') else '없음'}
 
+## 대운
+- 시작 나이: {saju_result.get('daeun_start_age', '?')}세
+- 방향: {saju_result.get('daeun_direction', '?')}
+
 ---
 
 # 풀이 양식
 
-## 1. 핵심 성향 요약
+## 1. 핵심 구조 요약 (3줄)
 
-{saju_result['day_pillar'][0]} 일간의 핵심 성향을 3개 문단으로 요약해주세요.
+이 사주의 주요 구조 유형을 정의하세요:
+- balance-driven (균형 추구형)
+- tension-driven (긴장 주도형)
+- expansion-driven (확장 주도형)
+- relationship-driven (관계 중심형)
+- control-driven (통제 지향형)
 
-**작성 패턴:**
+그리고 에너지 흐름과 최적 퍼포먼스 조건을 설명하세요.
+
+**Example:**
 ```
-[일간 한자(음양오행)] 일간, [주요 오행·십신]이 [강함/약함] "[비유적 표현]" 기질입니다.
-
-[대인관계나 책임감 특징]하는 편이지만, [겉과 속의 차이나 습관].
-
-[가치관이나 행동 패턴]하면서도 [내면 특징], [관심사나 고민거리].
-```
-
-**예시:**
-신금(辛金) 일간, 토 기운(정인·편인)이 아주 강한 "단단한 금" 기질입니다.
-
-내 사람과 해야 할 일은 끝까지 책임지는 편이지만, 겉으로 힘들다고 잘 내색하지 않습니다.
-
-체면과 원칙을 중시하면서도 속으로는 걱정·생각이 많고, 가족과 자식 문제에 마음을 많이 쓰는 형입니다.
-
----
-
-## 2. 기질과 심리 패턴
-
-### 강점
-
-3가지 강점을 자연스럽게 설명하세요. 각 강점마다:
-
-**작성 패턴:**
-```
-[사주 구조 설명]
-→ [구체적 역할·능력을 중점으로 나열]
-
-[일간이나 오행 특징] [비유적 표현]라
-[구체적 행동 패턴이나 습관]
-
-[역할이나 분야]에서 [장점이나 능력]
-```
-
-**예시:**
-사주 전체가 토(金을 생하는 인성) + 금(본인)으로 튼튼합니다.
-→ 공부·분석·정리, 남들 챙기는 역할, 집안의 "기둥 역할"에 강합니다.
-
-신금은 세공된 보석 같은 기운이라 깔끔함·정확함·성실함이 큰 장점이에요.
-맡은 일은 끝까지 책임지려 하고, 약속을 어지간해서는 어기지 않습니다.
-
-대충 넘어가는 것을 잘 못 해서, 집안일·재정·건강 관리 등 체계 잡는 능력이 좋습니다.
-
-### 약점
-
-3가지 주의할 점을 자연스럽게 설명하세요.
-
-**작성 패턴:**
-```
-[오행 불균형 설명],
-"[부정적 패턴1]"을/를 [동사]하기 쉽고
-[부정적 결과]로 이어지기 쉽습니다.
-
-[십신이나 구조 특징]해서,
-"[가치관이나 기준]"을/를 [행동 패턴]합니다.
-그래서 [부정적 영향이나 갈등 상황].
-
-[심리 패턴]하다가
-정작 [본인 상태]하고 [결과]하기 쉽습니다.
-```
-
-**예시:**
-토·금이 강하고 목·화가 없어서,
-"나만의 방식·생각"을 고집하기 쉽고
-몸과 마음의 탄력이 떨어지면 우울감·무기력으로 이어지기 쉽습니다.
-
-관성(불 기운)이 약해,
-"이렇게 살아야 한다"는 사회적 기준보다는 내 기준을 더 따르려 합니다.
-그래서 때로는 권위나 규칙을 받아들이는 게 답답하거나,
-반대로 너무 책임을 혼자 짊어지고 피곤해지기도 해요.
-
-걱정이 많고, 혹시라도 남에게 민폐 끼칠까 조심하다가
-정작 본인 마음은 잘 표현하지 못하고 속 앓이로 남기기 쉽습니다.
-
----
-
-## 3. 인간관계 / 연애·부부 패턴
-
-자연스러운 흐름으로 작성하세요.
-
-**작성 패턴:**
-```
-[십신 특징]이 [위치]에 있어서, 관계에서도 "[특징적 표현]"의 [가치]를 중요하게 여깁니다.
-→ [행동 패턴], [스타일 설명].
-
-[십신이나 오행 특징]라,
-[과거나 현재 연애·결혼 태도].
-
-[관계에서의 애정 표현 방식].
-
-[오행이나 지지 설명]라 [내면 특징]한데,
-[겉으로 보이는 모습]할 수 있어요.
-→ 그래서 "[오해받는 상황]"는 오해를 받지만, 사실은 [진실].
-
-나이 들어갈수록,
-[예상되는 관계 패턴이나 갈등].
-[조언]하면 좋습니다.
-```
-
-**예시:**
-비견(辛)이 월간에 떠 있어서, 관계에서도 "나는 나, 당신은 당신"의 거리를 중요하게 여깁니다.
-→ 간섭은 싫지만, 정이 깊어지면 끝까지 챙기는 스타일.
-
-관성이 약한 편이라,
-젊을 때는 연애·결혼 자체보다 생활 안정·가족 책임을 더 먼저 생각했을 가능성이 큽니다.
-
----
-
-## 4. 직업 / 재물 운용 스타일
-
-자연스럽게 연결하여 작성하세요.
-
-**작성 패턴:**
-```
-사주에 [십신 구성]하고, [재성·관성 상태]
-"[큰 것]"보다는 [작지만 확실한 것]에 더 맞는 타입입니다.
-
-적성으로 보면
-- [직업군1]
-- [직업군2]
-- [직업군3]
-같은 쪽이 잘 맞는 구조예요.
-
-[재성 위치나 상태]라
-→ [투자 스타일이나 재테크 방향].
-
-지금 대운이 [오행 설명]라,
-[현재 시기 재물·직업 방향].
+긴장과 이완을 반복하는 "파동형" 구조입니다.
+에너지가 한곳에 몰렸다가 갑자기 흩어지는 패턴이 강합니다.
+혼자 집중할 수 있는 환경에서 가장 효율적입니다.
 ```
 
 ---
 
-## 5. 현재 시기 고민에 대한 해석
+## 2. 심리 패턴
 
-### 1) 원인
+### 주요 강점
+구체적이고 관찰 가능한 강점을 설명하세요.
 
-**작성 패턴:**
+### 반복되는 약점 패턴
+사이클 형태로 설명하세요.
+예: 완벽주의 → 과도한 자기검열 → 결과물 지연 → 자책
+
+### 스트레스 반응
+겉으로 보이는 모습 vs 속마음을 대비하여 설명하세요.
+
+### 구체적 생활 장면
+실제 일어날 법한 구체적 상황 1개를 묘사하세요.
+
+---
+
+## 3. 관계·연애 패턴
+
+### 감정 연결 스타일
+어떻게 관계를 시작하고 깊어지는지 설명하세요.
+
+### 갈등 사이클
+반복되는 갈등 패턴을 단계별로 설명하세요.
+
+### 적합한 파트너 유형
+추상적이지 않게, 구체적 특성으로 설명하세요.
+
+### 현실적 관계 장면
+실제 연애/관계에서 일어날 법한 구체적 장면 1개를 묘사하세요.
+
+---
+
+## 4. 직업·재물 전략
+
+### 최적 업무 환경
+구체적 조건 3개 (리스트 형식)
+
+### 돈 관리 스타일
+실제 행동 패턴으로 설명
+
+### 리스크 성향
+구체적 상황에서의 반응
+
+### 성장 병목 지점
+무엇이 성장을 막고 있는지 + 해결 방향
+
+---
+
+## 5. 현재 이슈 분석
+
+**Surface Problem:**
+표면적으로 보이는 문제
+
+**Structural Cause:**
+구조적 원인 (사주와 연결)
+
+**Repeated Pattern:**
+반복되는 패턴 (사이클)
+
+**Strategic Shift:**
+구체적이고 실천 가능한 전환 방법
+
+---
+
+## 6. 실천 액션 플랜 (3개)
+
+각 액션마다 반드시 포함:
+- **행동:** 구체적으로 무엇을 할지
+- **상황:** 언제/어떤 상황에서
+- **측정:** 어떻게 확인할지
+
+**Example:**
 ```
-지금 운은 [오행이나 십신]이 [강해지는/약해지는] 흐름이라
-→ [현실 상황]도, [심리 상태]는 시기입니다.
-
-[구체적 고민 예시].
-```
-
-### 2) 패턴
-
-**작성 패턴:**
-```
-원국 자체가 '[특징]' 구조라서
-[반복되는 행동 패턴1]하거나
-[반복되는 행동 패턴2]하는 패턴이 강합니다.
-
-또, [일간 특징]은 "[심리 패턴]" 성향이 있어서
-[인지 왜곡이나 감정 패턴].
-```
-
-### 3) 전략
-
-**작성 패턴:**
-```
-지금부터의 운은, [하지 말아야 할 것]보다 "[해야 할 것]"에 더 유리합니다.
-
-[약한 오행]한 사주라, [보완 방법]할수록 전체 운도 같이 살아나요.
-
-앞으로 몇 년 사이에 [들어오는 오행] 기운이 들어오는 해들이 있어
-→ 그 시기에는 [구체적 기회나 변화].
-이때 [주의사항]하면, [긍정적 결과].
+**Action 1: 의사결정 루틴**
+- 행동: 선택지가 생기면 72시간 안에 결정. 타이머 설정.
+- 상황: "더 알아봐야겠다"는 생각이 들 때
+- 측정: 이번 달 3번 이상 적용
 ```
 
 ---
 
-## 6. 지금부터 실천하면 좋은 조언 3가지
-
-각 조언을 **제목 + 설명 + 이유/방법** 구조로 작성하세요.
-
-**작성 패턴:**
-```
-**"[짧고 구체적인 행동]"**
-
-[구체적인 실천 방법 2-3문장].
-
-"[관점의 전환이나 프레임]"는 관점으로,
-[심리적 정당화나 동기부여].
-```
-
-**예시:**
-**"하루 한 번 나를 위한 시간"을 의도적으로 만들기**
-
-최소 20~30분은 오직 나를 위해만 쓰는 시간을 정해 두세요.
-(가벼운 스트레칭, 산책, 찜질방·반신욕, 좋아하는 드라마·책 등)
-
-"가족을 위해서라도 내가 먼저 버텨야 한다"는 관점으로,
-나를 챙기는 걸 이기심이 아니라 '책임'으로 정의해보면 마음이 덜 불편합니다.
-
-{"" if not is_student else f'''
----
-
-# 학생 전용 추가 풀이
-
-## 7. 문과 / 이과 성향
-
-[오행·십신 구성]으로 보면, [적성 분야] 쪽 적성이 [강함/약함/균형].
-
-추천 전공:
-
-**[학과명1]**
-→ [사주적 근거], [발휘할 강점]
-
-**[학과명2]**
-→ [사주적 근거], [발휘할 강점]
-
-**[학과명3]**
-→ [사주적 근거], [발휘할 강점]
+{'## 7. 학업 분석\n\n### 인지 유형\n이 사람의 학습 사고 방식\n\n### 전공 추천\n구체적 전공 3개 (이유 포함)\n\n### 학습 방법\n단계별 구체적 방법\n\n### 3년 효율 트렌드\n올해~3년 후까지의 학습 효율 변화' if is_student else ''}
 
 ---
 
-## 8. 잘하는 과목 / 취약한 과목
+## FINAL
 
-### 잘하는 과목
+마지막 문장은 자기 관찰을 유도하는 성찰 질문 1개로 끝내세요.
 
-**[과목1]**: [이유와 특징]
-**[과목2]**: [이유와 특징]
-**[과목3]**: [이유와 특징]
-
-### 취약한 과목
-
-**[과목1]**: [이유와 특징]
-**[과목2]**: [이유와 특징]
-
-### 보완·강화 방법
-
-[취약 과목 보완 전략]
-[강한 과목 강화 방법]
-[전체 학습 밸런스 조언]
+**Example:**
+"이번 주, 당신이 '안전하다'고 느낀 순간은 언제였나요?"
 
 ---
 
-## 9. 공부 방법
+**중요:**
+- 금지 단어 사용 금지: 노력, 긍정, 열심히, 성공, 운이 좋다, 운이 나쁘다, 잘 될 것이다
+- 모든 조언은 관찰 가능하고 측정 가능하고 시간 기반이어야 함
+- 신비주의적 표현 금지
+- 따뜻하고 차분하고 현실적인 멘토 어조
+- 구체적 상황과 감정 묘사 필수"""
 
-[자기주도학습/과외/대형학원] 중 [선택] 방식이 더 잘 맞는 타입이에요.
-
-[이유와 사주적 근거]
-
-[구체적 학습 전략]
-
----
-
-## 10. 앞으로 3년간 시험운 / 학업운
-
-### {datetime.now().year}년 (현재)
-
-[세운 분석]
-→ [시험운·학업 전망]
-[전략]
-
-### {datetime.now().year + 1}년
-
-[세운 분석]
-→ [시험운·학업 전망]
-[전략]
-
-### {datetime.now().year + 2}년
-
-[세운 분석]
-→ [시험운·학업 전망]
-[전략]
-'''}
-
----
-
-# 중요 작성 원칙
-
-1. **제목에 괄호 표시 금지**: "(3줄)", "(5-7문장)" 등 절대 출력하지 마세요
-2. **자연스러운 대화체**: "~입니다", "~이에요", "~해요" 자연스럽게 혼용
-3. **화살표(→) 적극 사용**: 인과관계나 결과 연결 시
-4. **중점(·) 사용**: 나열 시 (예: 공부·분석·정리)
-5. **쌍따옴표 강조**: 핵심 개념이나 패턴 (예: "나는 나")
-6. **줄바꿈 활용**: 읽기 쉽게 적절히 나누기
-7. **구체적 예시**: 추상적 표현보다 실제 상황 묘사
-
-{"출생시간 없을 때: 시주 기반 해석은 '~할 가능성', '~한 경향' 등 확률 표현" if time_unknown else ""}
-
-**금지 표현:**
-- ❌ "반드시", "무조건", "절대"
-- ❌ "질병이 생깁니다", "사고가 납니다"
-- ❌ 제목에 "(3줄)", "(몇 문장)" 등 괄호 표시
-
-**권장 표현:**
-- ✅ "~한 경향", "~하기 쉽습니다"
-- ✅ "~에 더 유리합니다", "~하면 도움이 됩니다"
-- ✅ 화살표(→), 중점(·), 쌍따옴표(" ")"""
-    
     try:
         response = openai.chat.completions.create(
             model="gpt-4o",
@@ -470,29 +346,42 @@ def get_saju_interpretation(saju_result: dict, gender: str, occupation: str, stu
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            max_tokens=16000,
-            temperature=0.7
+            max_tokens=3000,
+            temperature=0.8
         )
         
         return response.choices[0].message.content
         
     except Exception as e:
-        return f"풀이 중 오류가 발생했습니다: {str(e)}"
+        return f"풀이 생성 중 오류가 발생했습니다: {str(e)}"
 
 
 def get_followup_answer(question: str, previous_interpretation: str, saju_info: str) -> str:
     """
-    자연스러운 대화체의 추가 질문 답변
+    구조 패턴 분석 기반 추가 질문 답변
     """
     
-    system_prompt = """당신은 30년 경력의 전문 사주명리학자입니다.
+    system_prompt = """You are a professional Saju consultant and life-strategy analyst.
 
-## 답변 스타일
-- 자연스러운 대화체 ("~입니다", "~이에요", "~해요" 혼용)
-- 화살표(→) 사용으로 인과관계 명확히
-- 구체적 예시와 실제 상황 묘사
-- 단정적 표현 최소화, 패턴/경향 중심
-- 공포 조장·의료·법률 단정 금지"""
+You do NOT act as a fortune teller.
+You analyze structural patterns, psychological tendencies, and behavioral strategies.
+
+Core Principles:
+- No fatalistic or deterministic language
+- No vague self-help expressions (노력, 긍정, 열심히, 성공, 운이 좋다, 운이 나쁘다, 잘 될 것이다)
+- No fear-based predictions
+- Focus on patterns, probabilities, and practical strategies
+- Always prioritize empathy and realism
+
+Tone:
+Warm, calm, intelligent, grounded, and trustworthy.
+Never dramatic. Never mystical.
+
+Answer Style:
+- Provide concrete, observable examples
+- Use specific, measurable advice when applicable
+- Include emotional insights when relevant
+- Maintain professional mentorship tone"""
     
     user_prompt = f"""## 이전 풀이
 {previous_interpretation}
@@ -505,16 +394,16 @@ def get_followup_answer(question: str, previous_interpretation: str, saju_info: 
 
 ---
 
-위 질문에 대해 자연스러운 대화체로 답변해주세요.
+위 질문에 대해 구조 패턴 분석 철학에 맞춰 답변해주세요.
 
 **작성 원칙:**
-- 화살표(→) 사용으로 결과 연결
-- 중점(·) 사용으로 나열
-- 쌍따옴표로 핵심 강조
-- "~한 경향", "~에 더 유리" 같은 패턴 표현
-- 구체적 예시와 실천 방법 제시
+- 구체적 상황과 행동 패턴으로 설명
+- 실천 가능한 조언 포함
+- 감정적 공감 표현
+- 금지 단어 사용 금지: 노력, 긍정, 열심히, 성공, 운이 좋다, 운이 나쁠 것이다
+- 따뜻하고 현실적인 멘토 어조
 
-5-8문장 정도로, 사주 요소를 구체적으로 언급하며 설명해주세요."""
+5-8문장 정도로, 사주 구조를 구체적으로 언급하며 답변해주세요."""
 
     try:
         response = openai.chat.completions.create(
@@ -524,7 +413,7 @@ def get_followup_answer(question: str, previous_interpretation: str, saju_info: 
                 {"role": "user", "content": user_prompt}
             ],
             max_tokens=3000,
-            temperature=0.7
+            temperature=0.8
         )
         
         return response.choices[0].message.content
