@@ -135,7 +135,12 @@ def get_saju_interpretation(saju_result: dict, gender: str, occupation: str, stu
 - 희망적이면서도 현실적인 메시지"""
     
     # 학생 모드인 경우 나이 정보 추출
-    current_age = saju_result.get('seun', {}).get('current', {}).get('나이', '-')
+    current_age_raw = saju_result.get('seun', {}).get('current', {}).get('나이', '-')
+    # 나이를 정수로 변환 시도, 실패하면 '-'로 설정
+    try:
+        current_age = int(current_age_raw) if current_age_raw != '-' else '-'
+    except (ValueError, TypeError):
+        current_age = '-'
     
     # 사용자 프롬프트
     occupation_info = f'학년: {student_grade}' if is_student else f'직업: {occupation}'
