@@ -111,8 +111,8 @@ def get_saju_interpretation(saju_result: dict, gender: str, occupation: str, stu
     GPT-4o 모델을 사용한 사주팔자 풀이 (성향/패턴/전략 중심)
     """
     
-    is_student = occupation == "학생" and student_grade is not None
-    time_unknown = saju_result.get('hour_pillar') == '시간미상' or saju_result.get('time_unknown', False)
+    is_student = occupation == "학생" and student_grade is not None and student_grade != ""
+    time_unknown = saju_result.get('time_unknown', False) or saju_result.get('hour_pillar') == '시간미상'
     
     # 시스템 프롬프트
     system_prompt = """당신은 30년 경력의 전문 사주명리학자입니다.
@@ -145,18 +145,18 @@ def get_saju_interpretation(saju_result: dict, gender: str, occupation: str, stu
 - 시주(時柱): {saju_result['hour_pillar']} ({saju_result['hour_hanja']})
 
 ## 오행 분포
-{' '.join([f'{k}: {v}개' for k, v in saju_result['elements'].items()])}
+{' '.join([f'{k}: {v}개' for k, v in saju_result.get('elements', {}).items()])}
 
 ## 십신(十神)
-- 연간: {saju_result['sipsin']['year_stem']}
-- 월간: {saju_result['sipsin']['month_stem']}
-- 일간: {saju_result['sipsin']['day_stem']} (본인)
-- 시간: {saju_result['sipsin']['hour_stem']}
+- 연간: {saju_result.get('sipsin', {}).get('year_stem', '-')}
+- 월간: {saju_result.get('sipsin', {}).get('month_stem', '-')}
+- 일간: {saju_result.get('sipsin', {}).get('day_stem', '-')} (본인)
+- 시간: {saju_result.get('sipsin', {}).get('hour_stem', '-')}
 
 ## 신살(神殺)
-- 천을귀인: {', '.join(saju_result['sinsal']['cheonul']) if saju_result['sinsal']['cheonul'] else '없음'}
-- 역마살: {', '.join(saju_result['sinsal']['yeokma']) if saju_result['sinsal']['yeokma'] else '없음'}
-- 도화살: {', '.join(saju_result['sinsal']['dohwa']) if saju_result['sinsal']['dohwa'] else '없음'}
+- 천을귀인: {', '.join(saju_result.get('sinsal', {}).get('cheonul', [])) if saju_result.get('sinsal', {}).get('cheonul') else '없음'}
+- 역마살: {', '.join(saju_result.get('sinsal', {}).get('yeokma', [])) if saju_result.get('sinsal', {}).get('yeokma') else '없음'}
+- 도화살: {', '.join(saju_result.get('sinsal', {}).get('dohwa', [])) if saju_result.get('sinsal', {}).get('dohwa') else '없음'}
 
 ---
 
@@ -327,17 +327,17 @@ def get_saju_interpretation(saju_result: dict, gender: str, occupation: str, stu
 
 ## 10. 앞으로 3년간 시험운 / 학업운
 
-### {datetime.now().year}년 (현재, {saju_result['seun']['current']['나이']}세)
+### {datetime.now().year}년 (현재, {saju_result.get('seun', {}).get('current', {}).get('나이', '-')}세)
 - [현재 세운 분석 3-4문장]
 - [시험운과 학업 성취 가능성]
 - [이 시기 전략: "~하면 좋은 결과를 기대할 수 있습니다"]
 
-### {datetime.now().year + 1}년 ({saju_result['seun']['current']['나이'] + 1}세)
+### {datetime.now().year + 1}년 ({saju_result.get('seun', {}).get('current', {}).get('나이', 0) + 1}세)
 - [다음 해 세운 분석 3-4문장]
 - [시험운과 학업 성취 가능성]
 - [이 시기 전략]
 
-### {datetime.now().year + 2}년 ({saju_result['seun']['current']['나이'] + 2}세)
+### {datetime.now().year + 2}년 ({saju_result.get('seun', {}).get('current', {}).get('나이', 0) + 2}세)
 - [다다음 해 세운 분석 3-4문장]
 - [시험운과 학업 성취 가능성]
 - [이 시기 전략]
@@ -891,7 +891,7 @@ AI 사주 풀이
 - 일주: {saju_result['day_pillar']} ({saju_result['day_hanja']})
 - 시주: {saju_result['hour_pillar']} ({saju_result['hour_hanja']})
 
-## 오행: {' '.join([f'{k}: {v}개' for k, v in saju_result['elements'].items()])}"""
+## 오행: {' '.join([f'{k}: {v}개' for k, v in saju_result.get('elements', {}).items()])}"""
                         
                         # 이전 풀이 가져오기
                         previous_interpretation = st.session_state.get('interpretation', '')
