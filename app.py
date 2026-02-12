@@ -20,9 +20,48 @@ try:
 except ImportError:
     LUNAR_CALENDAR_AVAILABLE = False
 
+# 세션 상태 초기화
+if 'authenticated' not in st.session_state:
+    st.session_state.authenticated = False
+
+# 인증되지 않은 경우 로그인 화면 표시
+if not st.session_state.authenticated:
+    st.set_page_config(page_title="사주풀이 - 로그인", page_icon="🔐")
+    
+    st.title("🔐 사주팔자 풀이")
+    st.markdown("---")
+    
+    st.info("💡 이 서비스는 인증된 사용자만 이용 가능합니다.")
+    
+    password = st.text_input(
+        "비밀번호를 입력하세요",
+        type="password",
+        placeholder="패스워드 입력"
+    )
+    
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col2:
+        login_button = st.button("🔓 로그인", use_container_width=True)
+    
+    if login_button:
+        if password == st.secrets["APP_PASSWORD"]:
+            st.session_state.authenticated = True
+            st.success("✅ 로그인 성공!")
+            st.rerun()
+        else:
+            st.error("❌ 비밀번호가 틀렸습니다")
+    
+    st.markdown("---")
+    st.caption("🔒 문의: 관리자에게 연락하세요")
+    
+    st.stop()
+
+# 여기부터 기존 앱 코드 실행
+# (인증된 사용자만 여기까지 도달)
+
 # 페이지 설정
 st.set_page_config(
-    page_title="사주팔자 만세력 계산기",
+    page_title="사주팔자 만세력 계정기",
     page_icon="🔮",
     layout="wide"
 )
@@ -57,6 +96,13 @@ def lunar_to_solar(year, month, day, is_leap_month=False):
 
 st.title("🔮 사주팔자 만세력 계산기")
 st.caption("생년월일시를 입력하면 사주팔자를 계산하고 AI가 풀이해드립니다.")
+
+# 사이드바에 로그아웃 버튼 추가
+with st.sidebar:
+    st.markdown("---")
+    if st.button("🚪 로그아웃"):
+        st.session_state.authenticated = False
+        st.rerun()
 
 
 def get_saju_interpretation(saju_result: dict, is_student: bool = False, grade_level: str = "") -> str:
