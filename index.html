@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>판매가 계산기</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .formula {
+            background: #f0f4ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 25px;
+            color: #555;
+            font-size: 14px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .input-section {
+            margin-bottom: 25px;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 600;
+        }
+        
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .freight-method {
+            margin-top: 20px;
+        }
+        
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+        }
+        
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: normal;
+            cursor: pointer;
+        }
+        
+        .radio-group input[type="radio"] {
+            cursor: pointer;
+        }
+        
+        .items-section {
+            margin-top: 20px;
+        }
+        
+        .item-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: end;
+        }
+        
+        .btn-remove {
+            padding: 12px 15px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        .btn-remove:hover {
+            background: #c82333;
+        }
+        
+        .btn-add {
+            padding: 12px 20px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+        
+        .btn-add:hover {
+            background: #218838;
+        }
+        
+        .btn-calculate {
+            width: 100%;
+            padding: 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+        
+        .btn-calculate:hover {
+            background: #5568d3;
+        }
+        
+        .results {
+            margin-top: 30px;
+            display: none;
+        }
+        
+        .results.show {
+            display: block;
+        }
+        
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .results-table th,
+        .results-table td {
+            padding: 12px;
+            text-align: right;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .results-table th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .results-table th:first-child,
+        .results-table td:first-child {
+            text-align: left;
+        }
+        
+        .results-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .total-row {
+            font-weight: 700;
+            background: #f0f4ff !important;
+        }
+        
+        .margin-verification {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f5e9;
+            border-radius: 5px;
+            border-left: 4px solid #28a745;
+        }
+        
+        .margin-verification.error {
+            background: #ffebee;
+            border-left-color: #dc3545;
+        }
+        
+        .margin-verification h3 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 18px;
+        }
+        
+        .margin-item {
+            padding: 8px 0;
+            color: #555;
+        }
+        
+        .number {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>판매가 계산기</h1>
+        <div class="formula">
+            <strong>공식:</strong> 판매가 = (원가 / (1 - 마진율)) + 운임<br>
+            <strong>예시:</strong> 원가 100만원, 운임 10만원, 마진율 20% → 판매가 = 100만 / 0.8 + 10만 = 135만원
+        </div>
+        
+        <div class="input-section">
+            <div class="input-group">
+                <label for="totalFreight">총 운임 (원)</label>
+                <input type="number" id="totalFreight" placeholder="예: 100000" value="100000" min="0">
+            </div>
+            
+            <div class="input-group">
+                <label for="marginRate">마진율 (%)</label>
+                <input type="number" id="marginRate" placeholder="예: 20" value="20" min="0" max="100" step="0.1">
+            </div>
+            
+            <div class="freight-method">
+                <label>운임 배분 방식</label>
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="freightMethod" value="equal" checked>
+                        균등 배분
+                    </label>
+                    <label>
+                        <input type="radio" name="freightMethod" value="proportional">
+                        비례 배분 (원가 비율)
+                    </label>
+                </div>
+            </div>
+            
+            <div class="items-section">
+                <h3 style="margin-bottom: 15px; color: #333;">품목 정보</h3>
+                <div id="itemsContainer">
+                    <div class="item-row">
+                        <div class="input-group">
+                            <label>품목명</label>
+                            <input type="text" class="item-name" placeholder="예: 제품 A" value="제품 A">
+                        </div>
+                        <div class="input-group">
+                            <label>원가 (원)</label>
+                            <input type="number" class="item-cost" placeholder="예: 1000000" value="1000000" min="0">
+                        </div>
+                        <button type="button" class="btn-remove" onclick="removeItem(this)" style="display: none;">삭제</button>
+                    </div>
+                </div>
+                <button type="button" class="btn-add" onclick="addItem()">+ 품목 추가</button>
+            </div>
+        </div>
+        
+        <button class="btn-calculate" onclick="calculate()">계산하기</button>
+        
+        <div class="results" id="results">
+            <h2 style="margin-bottom: 15px; color: #333;">계산 결과</h2>
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>품목명</th>
+                        <th>원가 (원)</th>
+                        <th>배분 운임 (원)</th>
+                        <th>판매가 (원)</th>
+                        <th>실제 마진율 (%)</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody">
+                </tbody>
+            </table>
+            
+            <div class="margin-verification" id="marginVerification">
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function addItem() {
+            const container = document.getElementById('itemsContainer');
+            const itemCount = container.children.length;
+            
+            const itemRow = document.createElement('div');
+            itemRow.className = 'item-row';
+            itemRow.innerHTML = `
+                <div class="input-group">
+                    <label>품목명</label>
+                    <input type="text" class="item-name" placeholder="예: 제품 ${String.fromCharCode(65 + itemCount)}" value="제품 ${String.fromCharCode(65 + itemCount)}">
+                </div>
+                <div class="input-group">
+                    <label>원가 (원)</label>
+                    <input type="number" class="item-cost" placeholder="예: 1000000" value="0" min="0">
+                </div>
+                <button type="button" class="btn-remove" onclick="removeItem(this)">삭제</button>
+            `;
+            
+            container.appendChild(itemRow);
+            updateRemoveButtons();
+        }
+        
+        function removeItem(button) {
+            const container = document.getElementById('itemsContainer');
+            if (container.children.length > 1) {
+                button.closest('.item-row').remove();
+                updateRemoveButtons();
+            }
+        }
+        
+        function updateRemoveButtons() {
+            const container = document.getElementById('itemsContainer');
+            const removeButtons = container.querySelectorAll('.btn-remove');
+            removeButtons.forEach((btn, index) => {
+                btn.style.display = container.children.length > 1 ? 'block' : 'none';
+            });
+        }
+        
+        function formatNumber(num) {
+            return new Intl.NumberFormat('ko-KR').format(Math.round(num));
+        }
+        
+        function calculate() {
+            // Get inputs
+            const totalFreight = parseFloat(document.getElementById('totalFreight').value) || 0;
+            const marginRate = parseFloat(document.getElementById('marginRate').value) || 0;
+            const freightMethod = document.querySelector('input[name="freightMethod"]:checked').value;
+            
+            // Validate margin rate
+            if (marginRate >= 100) {
+                alert('마진율은 100% 미만이어야 합니다.');
+                return;
+            }
+            
+            if (marginRate < 0) {
+                alert('마진율은 0% 이상이어야 합니다.');
+                return;
+            }
+            
+            // Get items
+            const itemRows = document.querySelectorAll('.item-row');
+            const items = [];
+            let totalCost = 0;
+            
+            itemRows.forEach(row => {
+                const name = row.querySelector('.item-name').value || '품목';
+                const cost = parseFloat(row.querySelector('.item-cost').value) || 0;
+                
+                if (cost > 0) {
+                    items.push({ name, cost });
+                    totalCost += cost;
+                }
+            });
+            
+            if (items.length === 0 || totalCost === 0) {
+                alert('최소 1개 이상의 품목과 원가를 입력해주세요.');
+                return;
+            }
+            
+            // Calculate freight distribution
+            const results = items.map(item => {
+                let distributedFreight;
+                
+                if (freightMethod === 'equal') {
+                    // 균등 배분
+                    distributedFreight = totalFreight / items.length;
+                } else {
+                    // 비례 배분 (원가 비율)
+                    distributedFreight = (item.cost / totalCost) * totalFreight;
+                }
+                
+                // 공식: 판매가 = (원가 / (1 - 마진율)) + 운임
+                const marginRateDecimal = marginRate / 100;
+                const sellingPrice = (item.cost / (1 - marginRateDecimal)) + distributedFreight;
+                
+                // 실제 마진율 검증: ((판매가 - 운임 - 원가) / (판매가 - 운임)) * 100
+                const actualMargin = ((sellingPrice - distributedFreight - item.cost) / (sellingPrice - distributedFreight)) * 100;
+                
+                return {
+                    name: item.name,
+                    cost: item.cost,
+                    freight: distributedFreight,
+                    sellingPrice: sellingPrice,
+                    actualMargin: actualMargin
+                };
+            });
+            
+            // Display results
+            displayResults(results, totalCost, totalFreight, marginRate, freightMethod);
+        }
+        
+        function displayResults(results, totalCost, totalFreight, targetMargin, freightMethod) {
+            const resultsBody = document.getElementById('resultsBody');
+            resultsBody.innerHTML = '';
+            
+            let totalSellingPrice = 0;
+            
+            // Add item rows
+            results.forEach(result => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${result.name}</td>
+                    <td class="number">${formatNumber(result.cost)}</td>
+                    <td class="number">${formatNumber(result.freight)}</td>
+                    <td class="number">${formatNumber(result.sellingPrice)}</td>
+                    <td class="number">${result.actualMargin.toFixed(2)}</td>
+                `;
+                resultsBody.appendChild(row);
+                totalSellingPrice += result.sellingPrice;
+            });
+            
+            // Add total row
+            const totalRow = document.createElement('tr');
+            totalRow.className = 'total-row';
+            totalRow.innerHTML = `
+                <td>합계</td>
+                <td class="number">${formatNumber(totalCost)}</td>
+                <td class="number">${formatNumber(totalFreight)}</td>
+                <td class="number">${formatNumber(totalSellingPrice)}</td>
+                <td>-</td>
+            `;
+            resultsBody.appendChild(totalRow);
+            
+            // Margin verification
+            const marginVerification = document.getElementById('marginVerification');
+            const allMarginCorrect = results.every(r => Math.abs(r.actualMargin - targetMargin) < 0.01);
+            
+            let verificationHTML = '<h3>마진 검증</h3>';
+            
+            if (allMarginCorrect) {
+                verificationHTML += '<div class="margin-item">✅ 모든 품목의 마진율이 정확합니다.</div>';
+            } else {
+                verificationHTML += '<div class="margin-item">⚠️ 일부 품목의 마진율이 목표와 다를 수 있습니다.</div>';
+            }
+            
+            verificationHTML += `
+                <div class="margin-item">목표 마진율: <span class="number">${targetMargin.toFixed(2)}%</span></div>
+                <div class="margin-item">운임 배분: ${freightMethod === 'equal' ? '균등 배분' : '비례 배분 (원가 비율)'}</div>
+                <div class="margin-item">총 원가: <span class="number">${formatNumber(totalCost)}원</span></div>
+                <div class="margin-item">총 운임: <span class="number">${formatNumber(totalFreight)}원</span></div>
+                <div class="margin-item">총 판매가: <span class="number">${formatNumber(totalSellingPrice)}원</span></div>
+            `;
+            
+            marginVerification.innerHTML = verificationHTML;
+            marginVerification.className = allMarginCorrect ? 'margin-verification' : 'margin-verification error';
+            
+            // Show results
+            document.getElementById('results').classList.add('show');
+            
+            // Scroll to results
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        
+        // Initialize
+        updateRemoveButtons();
+    </script>
+</body>
+</html>
