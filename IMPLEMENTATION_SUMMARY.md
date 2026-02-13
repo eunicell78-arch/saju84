@@ -8,20 +8,21 @@
 
 ## 구현 상세
 
-### 핵심 로직 (index.html, lines 401-412)
+### 핵심 로직 (index.html, lines 401-427)
 ```javascript
 // 수량 기반 운임 균등배분 (Quantity-based freight distribution)
-// 개당 운임 = 총 운임 ÷ 총수량
+// 배분운임단가 = 총 운임 ÷ 총수량
 // ⚠️ 중요: 품목 개수(items.length)가 아닌 총수량(totalQuantity) 기준
 const equalFreightPerUnit = totalFreight / totalQuantity;
 
 const results = items.map(p => {
-    // 각 품목의 운임 배분 = 개당 운임 × 해당 품목 수량
-    const freight = equalFreightPerUnit * p.quantity;
-    const unitCost = p.costKRW / p.quantity;
-    // 판매단가 = (원가 / (1 - 마진율)) + 개당 운임
+    const unitCost = p.costKRW / p.quantity; // 구입단가
+    // 판매단가 = (구입단가 / (1 - 마진율)) + 배분운임단가
     const sellingPricePerUnit = unitCost / (1 - marginRate / 100) + equalFreightPerUnit;
     const totalSellingPrice = sellingPricePerUnit * p.quantity;
+    
+    // 판매이익단가 = 판매단가 - 구입단가 - 배분운임단가
+    const profitPerUnit = sellingPricePerUnit - unitCost - equalFreightPerUnit;
     // ...
 });
 ```
@@ -79,9 +80,9 @@ const results = items.map(p => {
 판매가 계산기의 운임 배분 로직은 **정확하게 수량 기반으로 구현**되어 있으며, 문제 명세서의 요구사항을 완벽히 충족합니다.
 
 ### 공식 확인
-✅ 개당 운임 = 총 운임 ÷ 총수량  
-✅ 품목별 배분 운임 = 개당 운임 × 해당 품목 수량  
-✅ 판매단가 = (원가 / (1 - 마진율)) + 개당 운임  
+✅ 배분운임단가 = 총 운임 ÷ 총수량  
+✅ 판매단가 = (구입단가 / (1 - 마진율)) + 배분운임단가  
+✅ 판매이익단가 = 판매단가 - 구입단가 - 배분운임단가  
 ✅ 총 판매가 = 판매단가 × 수량  
 
 ### 핵심 포인트

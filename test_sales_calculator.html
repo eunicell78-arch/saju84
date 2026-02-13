@@ -83,10 +83,12 @@
             const equalFreightPerUnit = totalQuantity > 0 ? totalFreight / totalQuantity : 0;
             
             const results = items.map(p => {
-                const freight = equalFreightPerUnit * p.quantity;
                 const unitCost = p.costKRW / p.quantity;
                 const sellingPricePerUnit = unitCost / (1 - marginRate / 100) + equalFreightPerUnit;
                 const totalSellingPrice = sellingPricePerUnit * p.quantity;
+                
+                // 판매이익단가 = 판매단가 - 구입단가 - 배분운임단가
+                const profitPerUnit = sellingPricePerUnit - unitCost - equalFreightPerUnit;
                 
                 const actualMargin = ((sellingPricePerUnit - equalFreightPerUnit - unitCost) / (sellingPricePerUnit - equalFreightPerUnit)) * 100;
                 
@@ -95,8 +97,8 @@
                     unitCost: unitCost,
                     quantity: p.quantity,
                     freightPerUnit: equalFreightPerUnit,
-                    itemTotalFreight: freight,
                     unitSellingPrice: sellingPricePerUnit,
+                    profitPerUnit: profitPerUnit,
                     totalSellingPrice: totalSellingPrice,
                     actualMargin: actualMargin
                 };
@@ -147,16 +149,20 @@
             const result = calculateFreightDistribution(items, totalFreight, marginRate);
             
             // Verify: freightPerUnit = 100000 / 2 = 50000
-            assertEqual(result.equalFreightPerUnit, 50000, 0.01, "개당 운임이 50,000원이어야 함");
+            assertEqual(result.equalFreightPerUnit, 50000, 0.01, "배분운임단가가 50,000원이어야 함");
             
             // Verify: total freight allocated = 50000 * 2 = 100000
-            assertEqual(result.results[0].itemTotalFreight, 100000, 0.01, "총 배분 운임이 100,000원이어야 함");
+            const itemTotalFreight = result.results[0].freightPerUnit * result.results[0].quantity;
+            assertEqual(itemTotalFreight, 100000, 0.01, "총 배분 운임이 100,000원이어야 함");
             
             // Verify: unitCost = 1000000 / 2 = 500000
-            assertEqual(result.results[0].unitCost, 500000, 0.01, "개당 원가가 500,000원이어야 함");
+            assertEqual(result.results[0].unitCost, 500000, 0.01, "구입단가가 500,000원이어야 함");
             
             // Verify: sellingPricePerUnit = 500000 / 0.8 + 50000 = 625000 + 50000 = 675000
-            assertEqual(result.results[0].unitSellingPrice, 675000, 0.01, "개당 판매가가 675,000원이어야 함");
+            assertEqual(result.results[0].unitSellingPrice, 675000, 0.01, "판매단가가 675,000원이어야 함");
+            
+            // Verify: profitPerUnit = 675000 - 500000 - 50000 = 125000
+            assertEqual(result.results[0].profitPerUnit, 125000, 0.01, "판매이익단가가 125,000원이어야 함");
             
             // Verify: margin rate is correct
             assertEqual(result.results[0].actualMargin, 20, 0.01, "실제 마진율이 20%여야 함");
@@ -177,16 +183,18 @@
             assertEqual(result.totalQuantity, 5, 0.01, "총 수량이 5개여야 함");
             
             // Verify: freightPerUnit = 100000 / 5 = 20000
-            assertEqual(result.equalFreightPerUnit, 20000, 0.01, "개당 운임이 20,000원이어야 함");
+            assertEqual(result.equalFreightPerUnit, 20000, 0.01, "배분운임단가가 20,000원이어야 함");
             
             // Verify: Product A freight = 20000 * 2 = 40000
-            assertEqual(result.results[0].itemTotalFreight, 40000, 0.01, "제품 A의 배분 운임이 40,000원이어야 함");
+            const itemATotalFreight = result.results[0].freightPerUnit * result.results[0].quantity;
+            assertEqual(itemATotalFreight, 40000, 0.01, "제품 A의 배분 운임이 40,000원이어야 함");
             
             // Verify: Product B freight = 20000 * 3 = 60000
-            assertEqual(result.results[1].itemTotalFreight, 60000, 0.01, "제품 B의 배분 운임이 60,000원이어야 함");
+            const itemBTotalFreight = result.results[1].freightPerUnit * result.results[1].quantity;
+            assertEqual(itemBTotalFreight, 60000, 0.01, "제품 B의 배분 운임이 60,000원이어야 함");
             
             // Verify: Total allocated freight = 40000 + 60000 = 100000
-            const totalAllocated = result.results[0].itemTotalFreight + result.results[1].itemTotalFreight;
+            const totalAllocated = itemATotalFreight + itemBTotalFreight;
             assertEqual(totalAllocated, 100000, 0.01, "총 배분 운임이 100,000원이어야 함");
             
             // Verify margins for both products
@@ -204,8 +212,9 @@
             
             const result = calculateFreightDistribution(items, totalFreight, marginRate);
             
-            assertEqual(result.equalFreightPerUnit, 0, 0.01, "운임이 0원이면 개당 운임도 0원");
-            assertEqual(result.results[0].itemTotalFreight, 0, 0.01, "배분 운임이 0원이어야 함");
+            assertEqual(result.equalFreightPerUnit, 0, 0.01, "운임이 0원이면 배분운임단가도 0원");
+            const itemTotalFreight = result.results[0].freightPerUnit * result.results[0].quantity;
+            assertEqual(itemTotalFreight, 0, 0.01, "배분 운임이 0원이어야 함");
             
             // Verify: sellingPricePerUnit = 1000000 / 0.8 + 0 = 1250000
             assertEqual(result.results[0].unitSellingPrice, 1250000, 0.01, "운임 없이 판매가 계산");
@@ -223,17 +232,18 @@
             const result = calculateFreightDistribution(items, totalFreight, marginRate);
             
             // From spec: 총수량=5개, 총 운임 10만원
-            // 개당 운임 = 10만 ÷ 5 = 2만원
-            assertEqual(result.equalFreightPerUnit, 20000, 0.01, "개당 운임 = 2만원");
+            // 배분운임단가 = 10만 ÷ 5 = 2만원
+            assertEqual(result.equalFreightPerUnit, 20000, 0.01, "배분운임단가 = 2만원");
             
             // 품목A 배분 운임 = 2만 × 2 = 4만원
-            assertEqual(result.results[0].itemTotalFreight, 40000, 0.01, "품목A 배분 운임 = 4만원");
+            const itemATotalFreight = result.results[0].freightPerUnit * result.results[0].quantity;
+            assertEqual(itemATotalFreight, 40000, 0.01, "품목A 배분 운임 = 4만원");
             
             // 품목B 배분 운임 = 2만 × 3 = 6만원
-            assertEqual(result.results[1].itemTotalFreight, 60000, 0.01, "품목B 배분 운임 = 6만원");
+            const itemBTotalFreight = result.results[1].freightPerUnit * result.results[1].quantity;
+            assertEqual(itemBTotalFreight, 60000, 0.01, "품목B 배분 운임 = 6만원");
             
-            // 품목A: 원가 100만원, 마진율 20%
-            // 개당 원가 = 100만 / 2 = 50만원
+            // 품목A: 구입단가 50만원 (100만원 / 2개), 마진율 20%
             // 판매단가 = 50만/0.8 + 2만 = 62.5만 + 2만 = 64.5만원 (실제로는 625,000 + 20,000 = 645,000)
             // But the spec says 127만원, which seems to be for total cost not unit cost
             // Let me recalculate: unitCost = 1000000/2 = 500000
@@ -265,19 +275,22 @@
             assertEqual(result.totalQuantity, 16, 0.01, "총 수량이 16개여야 함");
             
             // freightPerUnit = 160000 / 16 = 10000
-            assertEqual(result.equalFreightPerUnit, 10000, 0.01, "개당 운임이 10,000원이어야 함");
+            assertEqual(result.equalFreightPerUnit, 10000, 0.01, "배분운임단가가 10,000원이어야 함");
             
             // Product A: 1 * 10000 = 10000
-            assertEqual(result.results[0].itemTotalFreight, 10000, 0.01, "제품 A 배분 운임 = 10,000원");
+            const itemATotalFreight = result.results[0].freightPerUnit * result.results[0].quantity;
+            assertEqual(itemATotalFreight, 10000, 0.01, "제품 A 배분 운임 = 10,000원");
             
             // Product B: 5 * 10000 = 50000
-            assertEqual(result.results[1].itemTotalFreight, 50000, 0.01, "제품 B 배분 운임 = 50,000원");
+            const itemBTotalFreight = result.results[1].freightPerUnit * result.results[1].quantity;
+            assertEqual(itemBTotalFreight, 50000, 0.01, "제품 B 배분 운임 = 50,000원");
             
             // Product C: 10 * 10000 = 100000
-            assertEqual(result.results[2].itemTotalFreight, 100000, 0.01, "제품 C 배분 운임 = 100,000원");
+            const itemCTotalFreight = result.results[2].freightPerUnit * result.results[2].quantity;
+            assertEqual(itemCTotalFreight, 100000, 0.01, "제품 C 배분 운임 = 100,000원");
             
             // Verify total = 10000 + 50000 + 100000 = 160000
-            const totalAllocated = result.results.reduce((sum, r) => sum + r.itemTotalFreight, 0);
+            const totalAllocated = result.results.reduce((sum, r) => sum + r.freightPerUnit * r.quantity, 0);
             assertEqual(totalAllocated, 160000, 0.01, "총 배분 운임 합계 = 160,000원");
             
             // Verify all margins are 25%
@@ -296,8 +309,9 @@
             
             const result = calculateFreightDistribution(items, totalFreight, marginRate);
             
-            assertEqual(result.equalFreightPerUnit, 50000, 0.01, "개당 운임 = 50,000원");
-            assertEqual(result.results[0].itemTotalFreight, 50000, 0.01, "배분 운임 = 50,000원");
+            assertEqual(result.equalFreightPerUnit, 50000, 0.01, "배분운임단가 = 50,000원");
+            const itemTotalFreight = result.results[0].freightPerUnit * result.results[0].quantity;
+            assertEqual(itemTotalFreight, 50000, 0.01, "배분 운임 = 50,000원");
             
             // unitCost = 5000000 / 1 = 5000000
             // sellingPrice = 5000000 / 0.85 + 50000 = 5882352.94 + 50000 = 5932352.94
@@ -324,9 +338,11 @@
             // Product A gets 10000 * 1 = 10000
             // Product B gets 10000 * 9 = 90000
             
-            assertEqual(result.equalFreightPerUnit, 10000, 0.01, "개당 운임 = 10,000원 (수량 기반)");
-            assertEqual(result.results[0].itemTotalFreight, 10000, 0.01, "제품 A = 10,000원 (품목당 50,000원이 아님)");
-            assertEqual(result.results[1].itemTotalFreight, 90000, 0.01, "제품 B = 90,000원 (품목당 50,000원이 아님)");
+            assertEqual(result.equalFreightPerUnit, 10000, 0.01, "배분운임단가 = 10,000원 (수량 기반)");
+            const itemATotalFreight = result.results[0].freightPerUnit * result.results[0].quantity;
+            const itemBTotalFreight = result.results[1].freightPerUnit * result.results[1].quantity;
+            assertEqual(itemATotalFreight, 10000, 0.01, "제품 A = 10,000원 (품목당 50,000원이 아님)");
+            assertEqual(itemBTotalFreight, 90000, 0.01, "제품 B = 90,000원 (품목당 50,000원이 아님)");
             
             // This proves it's quantity-based, not item-count based
         });

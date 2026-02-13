@@ -236,15 +236,15 @@
         <h1>판매가 계산기</h1>
         <div class="formula">
             <strong>운임 균등배분 공식:</strong><br>
-            ① 개당 운임 = 총 운임 ÷ 총수량<br>
-            ② 각 품목 배분 운임 = 개당 운임 × 해당 품목 수량<br>
-            ③ 각 품목 판매단가 = (원가 / (1 - 마진율)) + 개당 운임<br>
+            ① 배분운임단가 = 총 운임 ÷ 총수량<br>
+            ② 각 품목 판매단가 = (구입단가 / (1 - 마진율)) + 배분운임단가<br>
+            ③ 판매이익단가 = 판매단가 - 구입단가 - 배분운임단가<br>
             ④ 총 판매가 = 판매단가 × 수량<br>
             <br>
             <strong>예시:</strong> 품목A 2개, 품목B 3개 → 총수량=5개, 총 운임 10만원<br>
-            • 개당 운임 = 10만 ÷ 5 = 2만원<br>
-            • 품목A 배분 운임 = 2만 × 2 = 4만원, 품목B 배분 운임 = 2만 × 3 = 6만원<br>
-            • 품목A: 원가 100만원, 마진율 20% → 판매단가 = 100만/0.8 + 2만 = 127만원, 총 판매가 = 127만 × 2 = 254만원
+            • 배분운임단가 = 10만 ÷ 5 = 2만원<br>
+            • 품목A: 구입단가 50만원, 마진율 20% → 판매단가 = 50만/0.8 + 2만 = 64.5만원<br>
+            • 품목A 판매이익단가 = 64.5만 - 50만 - 2만 = 12.5만원
         </div>
         
         <div class="input-section">
@@ -267,7 +267,7 @@
                             <input type="text" class="item-name" placeholder="예: 제품 A" value="제품 A">
                         </div>
                         <div class="input-group">
-                            <label>원가 (원)</label>
+                            <label>구입단가 (원)</label>
                             <input type="number" class="item-cost" placeholder="예: 1000000" value="1000000" min="0">
                         </div>
                         <div class="input-group">
@@ -289,11 +289,11 @@
                 <thead>
                     <tr>
                         <th>품목명</th>
-                        <th>원가 (원)</th>
+                        <th>구입단가 (원)</th>
                         <th>수량</th>
-                        <th>개당 운임 (원)</th>
-                        <th>품목별 총 배분 운임 (원)</th>
+                        <th>배분운임단가 (원)</th>
                         <th>판매단가 (원)</th>
+                        <th>판매이익단가 (원)</th>
                         <th>총 판매가 (원)</th>
                         <th>실제 마진율 (%)</th>
                     </tr>
@@ -330,7 +330,7 @@
                     <input type="text" class="item-name" placeholder="예: 제품 ${itemLabel}" value="제품 ${itemLabel}">
                 </div>
                 <div class="input-group">
-                    <label>원가 (원)</label>
+                    <label>구입단가 (원)</label>
                     <input type="number" class="item-cost" placeholder="예: 1000000" value="0" min="0">
                 </div>
                 <div class="input-group">
@@ -399,19 +399,20 @@
             }
             
             // 수량 기반 운임 균등배분 (Quantity-based freight distribution)
-            // 개당 운임 = 총 운임 ÷ 총수량 (freight per unit = total freight ÷ total quantity)
+            // 배분운임단가 = 총 운임 ÷ 총수량 (freight per unit = total freight ÷ total quantity)
             // ⚠️ 중요: 품목 개수(items.length)가 아닌 총수량(totalQuantity) 기준
-            const equalFreightPerUnit = totalFreight / totalQuantity; // 개당 운임
+            const equalFreightPerUnit = totalFreight / totalQuantity; // 배분운임단가
             
             const results = items.map(p => {
-                // 각 품목의 운임 배분 = 개당 운임 × 해당 품목 수량
-                const freight = equalFreightPerUnit * p.quantity; // 이 품목의 운임 배분
-                const unitCost = p.costKRW / p.quantity; // 개당 원가 (총 원가 ÷ 수량)
-                // 판매단가 = (원가 / (1 - 마진율)) + 개당 운임
+                const unitCost = p.costKRW / p.quantity; // 구입단가 (총 원가 ÷ 수량)
+                // 판매단가 = (구입단가 / (1 - 마진율)) + 배분운임단가
                 const sellingPricePerUnit = unitCost / (1 - marginRate / 100) + equalFreightPerUnit; // 1개당 판매가
                 const totalSellingPrice = sellingPricePerUnit * p.quantity; // 총 판매가
                 
-                // 실제 마진율 검증: ((판매단가 - 개당운임 - 개당원가) / (판매단가 - 개당운임)) * 100
+                // 판매이익단가 = 판매단가 - 구입단가 - 배분운임단가
+                const profitPerUnit = sellingPricePerUnit - unitCost - equalFreightPerUnit;
+                
+                // 실제 마진율 검증: ((판매단가 - 배분운임단가 - 구입단가) / (판매단가 - 배분운임단가)) * 100
                 const actualMargin = ((sellingPricePerUnit - equalFreightPerUnit - unitCost) / (sellingPricePerUnit - equalFreightPerUnit)) * 100;
                 
                 return {
@@ -419,8 +420,8 @@
                     unitCost: unitCost,
                     quantity: p.quantity,
                     freightPerUnit: equalFreightPerUnit,
-                    itemTotalFreight: freight,
                     unitSellingPrice: sellingPricePerUnit,
+                    profitPerUnit: profitPerUnit,
                     totalSellingPrice: totalSellingPrice,
                     actualMargin: actualMargin
                 };
@@ -446,14 +447,14 @@
                     <td class="number">${formatNumber(result.unitCost)}</td>
                     <td class="number">${result.quantity}</td>
                     <td class="number">${formatNumber(result.freightPerUnit)}</td>
-                    <td class="number">${formatNumber(result.itemTotalFreight)}</td>
                     <td class="number">${formatNumber(result.unitSellingPrice)}</td>
+                    <td class="number">${formatNumber(result.profitPerUnit)}</td>
                     <td class="number">${formatNumber(result.totalSellingPrice)}</td>
                     <td class="number">${result.actualMargin.toFixed(2)}</td>
                 `;
                 resultsBody.appendChild(row);
                 totalSellingPrice += result.totalSellingPrice;
-                totalAllocatedFreight += result.itemTotalFreight;
+                totalAllocatedFreight += result.freightPerUnit * result.quantity;
             });
             
             // Add total row
@@ -464,7 +465,7 @@
                 <td class="number">${formatNumber(totalCost)}</td>
                 <td class="number">${totalQuantity}</td>
                 <td>-</td>
-                <td class="number">${formatNumber(totalAllocatedFreight)}</td>
+                <td>-</td>
                 <td>-</td>
                 <td class="number">${formatNumber(totalSellingPrice)}</td>
                 <td>-</td>
@@ -496,8 +497,8 @@
             verificationHTML += `
                 <div class="margin-item">목표 마진율: <span class="number">${targetMargin.toFixed(2)}%</span></div>
                 <div class="margin-item">총 수량: <span class="number">${totalQuantity}개</span></div>
-                <div class="margin-item">개당 운임: <span class="number">${formatNumber(equalFreightPerUnit)}원</span></div>
-                <div class="margin-item">총 원가: <span class="number">${formatNumber(totalCost)}원</span></div>
+                <div class="margin-item">배분운임단가: <span class="number">${formatNumber(equalFreightPerUnit)}원</span></div>
+                <div class="margin-item">총 구입단가: <span class="number">${formatNumber(totalCost)}원</span></div>
                 <div class="margin-item">총 운임: <span class="number">${formatNumber(totalFreight)}원</span> (배분 합계: <span class="number">${formatNumber(totalAllocatedFreight)}원</span>)</div>
                 <div class="margin-item">총 판매가: <span class="number">${formatNumber(totalSellingPrice)}원</span></div>
             `;
