@@ -377,12 +377,12 @@
             
             itemRows.forEach(row => {
                 const name = row.querySelector('.item-name').value || '품목';
-                const cost = parseFloat(row.querySelector('.item-cost').value) || 0;
+                const unitCost = parseFloat(row.querySelector('.item-cost').value) || 0;
                 const quantity = parseFloat(row.querySelector('.item-quantity').value) || 0;
                 
-                if (cost > 0 && quantity > 0) {
-                    items.push({ name, cost, quantity });
-                    totalCost += cost * quantity;
+                if (unitCost > 0 && quantity > 0) {
+                    items.push({ name, unitCost, quantity });
+                    totalCost += unitCost * quantity;  // Sum of (unit cost × quantity)
                     totalQuantity += quantity;
                 }
             });
@@ -399,17 +399,17 @@
             const results = items.map(item => {
                 // 공식: 판매단가 = (원가 / (1 - 마진율)) + (총 운임 ÷ 총수량)
                 const marginRateDecimal = marginRate / 100;
-                const unitSellingPrice = (item.cost / (1 - marginRateDecimal)) + freightPerUnit;
+                const unitSellingPrice = (item.unitCost / (1 - marginRateDecimal)) + freightPerUnit;
                 
                 // 총 판매가 = 판매단가 × 수량
                 const totalSellingPrice = unitSellingPrice * item.quantity;
                 
                 // 실제 마진율 검증: ((판매단가 - 개당운임 - 원가) / (판매단가 - 개당운임)) * 100
-                const actualMargin = ((unitSellingPrice - freightPerUnit - item.cost) / (unitSellingPrice - freightPerUnit)) * 100;
+                const actualMargin = ((unitSellingPrice - freightPerUnit - item.unitCost) / (unitSellingPrice - freightPerUnit)) * 100;
                 
                 return {
                     name: item.name,
-                    cost: item.cost,
+                    unitCost: item.unitCost,
                     quantity: item.quantity,
                     freightPerUnit: freightPerUnit,
                     unitSellingPrice: unitSellingPrice,
@@ -434,7 +434,7 @@
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${result.name}</td>
-                    <td class="number">${formatNumber(result.cost)}</td>
+                    <td class="number">${formatNumber(result.unitCost)}</td>
                     <td class="number">${result.quantity}</td>
                     <td class="number">${formatNumber(result.freightPerUnit)}</td>
                     <td class="number">${formatNumber(result.unitSellingPrice)}</td>
@@ -450,8 +450,9 @@
             totalRow.className = 'total-row';
             totalRow.innerHTML = `
                 <td>합계</td>
-                <td colspan="2" class="number">총원가: ${formatNumber(totalCost)}</td>
-                <td class="number">${formatNumber(freightPerUnit)}</td>
+                <td class="number">${formatNumber(totalCost)}</td>
+                <td class="number">${totalQuantity}</td>
+                <td>-</td>
                 <td>-</td>
                 <td class="number">${formatNumber(totalSellingPrice)}</td>
                 <td>-</td>
