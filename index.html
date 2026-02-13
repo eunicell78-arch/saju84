@@ -235,7 +235,7 @@
         <h1>판매가 계산기</h1>
         <div class="formula">
             <strong>공식:</strong> 판매가 = (원가 / (1 - 마진율)) + 운임<br>
-            <strong>예시:</strong> 원가 100만원, 운임 10만원, 마진율 20% → 판매가 = 100만 / 0.8 + 10만 = 135만원
+            <strong>예시:</strong> 원가 100만원, 운임 10만원, 마진율 20% → 판매가 = 100만 / 0.8 + 10만 = 135만원 (1,350,000원)
         </div>
         
         <div class="input-section">
@@ -310,12 +310,22 @@
             const container = document.getElementById('itemsContainer');
             const itemCount = container.children.length;
             
+            // Generate item name (A-Z, then AA, AB, etc.)
+            let itemLabel;
+            if (itemCount < 26) {
+                itemLabel = String.fromCharCode(65 + itemCount);
+            } else {
+                const firstChar = String.fromCharCode(65 + Math.floor(itemCount / 26) - 1);
+                const secondChar = String.fromCharCode(65 + (itemCount % 26));
+                itemLabel = firstChar + secondChar;
+            }
+            
             const itemRow = document.createElement('div');
             itemRow.className = 'item-row';
             itemRow.innerHTML = `
                 <div class="input-group">
                     <label>품목명</label>
-                    <input type="text" class="item-name" placeholder="예: 제품 ${String.fromCharCode(65 + itemCount)}" value="제품 ${String.fromCharCode(65 + itemCount)}">
+                    <input type="text" class="item-name" placeholder="예: 제품 ${itemLabel}" value="제품 ${itemLabel}">
                 </div>
                 <div class="input-group">
                     <label>원가 (원)</label>
@@ -355,13 +365,8 @@
             const freightMethod = document.querySelector('input[name="freightMethod"]:checked').value;
             
             // Validate margin rate
-            if (marginRate >= 100) {
-                alert('마진율은 100% 미만이어야 합니다.');
-                return;
-            }
-            
-            if (marginRate < 0) {
-                alert('마진율은 0% 이상이어야 합니다.');
+            if (marginRate < 0 || marginRate >= 100) {
+                alert('마진율은 0% 이상 100% 미만이어야 합니다.');
                 return;
             }
             
