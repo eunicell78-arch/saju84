@@ -379,7 +379,7 @@
             const itemRows = document.querySelectorAll('.item-row');
             const items = [];
             let totalCost = 0;
-            let totalQuantity = 0;
+            let totalQuantity = 0; // 총수량 (전체 품목의 수량 합계)
             
             itemRows.forEach(row => {
                 const name = row.querySelector('.item-name').value || '품목';
@@ -389,7 +389,7 @@
                 if (costKRW > 0 && quantity > 0) {
                     items.push({ name, costKRW, quantity });
                     totalCost += costKRW;  // Sum of total costs
-                    totalQuantity += quantity;
+                    totalQuantity += quantity; // 수량 기반 합산 (품목 개수가 아닌 실제 수량 합계)
                 }
             });
             
@@ -398,12 +398,16 @@
                 return;
             }
             
-            // Method 1: Equal distribution - 전체 품목 총수량 기준 균등배분
+            // 수량 기반 운임 균등배분 (Quantity-based freight distribution)
+            // 개당 운임 = 총 운임 ÷ 총수량 (freight per unit = total freight ÷ total quantity)
+            // ⚠️ 중요: 품목 개수(items.length)가 아닌 총수량(totalQuantity) 기준
             const equalFreightPerUnit = totalFreight / totalQuantity; // 개당 운임
             
             const results = items.map(p => {
+                // 각 품목의 운임 배분 = 개당 운임 × 해당 품목 수량
                 const freight = equalFreightPerUnit * p.quantity; // 이 품목의 운임 배분
                 const unitCost = p.costKRW / p.quantity; // 개당 원가 (총 원가 ÷ 수량)
+                // 판매단가 = (원가 / (1 - 마진율)) + 개당 운임
                 const sellingPricePerUnit = unitCost / (1 - marginRate / 100) + equalFreightPerUnit; // 1개당 판매가
                 const totalSellingPrice = sellingPricePerUnit * p.quantity; // 총 판매가
                 
