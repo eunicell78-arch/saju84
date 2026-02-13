@@ -235,11 +235,16 @@
     <div class="container">
         <h1>판매가 계산기</h1>
         <div class="formula">
-            <strong>공식:</strong><br>
-            • 판매단가 = (원가 / (1 - 마진율)) + (총 운임 ÷ 총수량)<br>
-            • 총 판매가 = 판매단가 × 수량<br>
-            <strong>예시:</strong> 품목A 2개, 품목B 3개 → 총수량=5개, 총 운임 10만원 → 개당 운임 2만원<br>
-            품목A: 원가 100만원, 마진율 20% → 판매단가 = 100만/0.8 + 2만 = 127만원, 총 판매가 = 127만 × 2 = 254만원
+            <strong>운임 균등배분 공식:</strong><br>
+            ① 개당 운임 = 총 운임 ÷ 총수량<br>
+            ② 각 품목 배분 운임 = 개당 운임 × 해당 품목 수량<br>
+            ③ 각 품목 판매단가 = (원가 / (1 - 마진율)) + 개당 운임<br>
+            ④ 총 판매가 = 판매단가 × 수량<br>
+            <br>
+            <strong>예시:</strong> 품목A 2개, 품목B 3개 → 총수량=5개, 총 운임 10만원<br>
+            • 개당 운임 = 10만 ÷ 5 = 2만원<br>
+            • 품목A 배분 운임 = 2만 × 2 = 4만원, 품목B 배분 운임 = 2만 × 3 = 6만원<br>
+            • 품목A: 원가 100만원, 마진율 20% → 판매단가 = 100만/0.8 + 2만 = 127만원, 총 판매가 = 127만 × 2 = 254만원
         </div>
         
         <div class="input-section">
@@ -287,6 +292,7 @@
                         <th>원가 (원)</th>
                         <th>수량</th>
                         <th>개당 운임 (원)</th>
+                        <th>품목별 총 배분 운임 (원)</th>
                         <th>판매단가 (원)</th>
                         <th>총 판매가 (원)</th>
                         <th>실제 마진율 (%)</th>
@@ -404,6 +410,9 @@
                 // 총 판매가 = 판매단가 × 수량
                 const totalSellingPrice = unitSellingPrice * item.quantity;
                 
+                // 품목별 총 배분 운임 = 개당 운임 × 수량
+                const itemTotalFreight = freightPerUnit * item.quantity;
+                
                 // 실제 마진율 검증: ((판매단가 - 개당운임 - 원가) / (판매단가 - 개당운임)) * 100
                 const actualMargin = ((unitSellingPrice - freightPerUnit - item.unitCost) / (unitSellingPrice - freightPerUnit)) * 100;
                 
@@ -412,6 +421,7 @@
                     unitCost: item.unitCost,
                     quantity: item.quantity,
                     freightPerUnit: freightPerUnit,
+                    itemTotalFreight: itemTotalFreight,
                     unitSellingPrice: unitSellingPrice,
                     totalSellingPrice: totalSellingPrice,
                     actualMargin: actualMargin
@@ -427,6 +437,7 @@
             resultsBody.innerHTML = '';
             
             let totalSellingPrice = 0;
+            let totalAllocatedFreight = 0;
             const freightPerUnit = totalFreight / totalQuantity;
             
             // Add item rows
@@ -437,12 +448,14 @@
                     <td class="number">${formatNumber(result.unitCost)}</td>
                     <td class="number">${result.quantity}</td>
                     <td class="number">${formatNumber(result.freightPerUnit)}</td>
+                    <td class="number">${formatNumber(result.itemTotalFreight)}</td>
                     <td class="number">${formatNumber(result.unitSellingPrice)}</td>
                     <td class="number">${formatNumber(result.totalSellingPrice)}</td>
                     <td class="number">${result.actualMargin.toFixed(2)}</td>
                 `;
                 resultsBody.appendChild(row);
                 totalSellingPrice += result.totalSellingPrice;
+                totalAllocatedFreight += result.itemTotalFreight;
             });
             
             // Add total row
@@ -453,6 +466,7 @@
                 <td class="number">${formatNumber(totalCost)}</td>
                 <td class="number">${totalQuantity}</td>
                 <td>-</td>
+                <td class="number">${formatNumber(totalAllocatedFreight)}</td>
                 <td>-</td>
                 <td class="number">${formatNumber(totalSellingPrice)}</td>
                 <td>-</td>
@@ -463,7 +477,10 @@
             const marginVerification = document.getElementById('marginVerification');
             const allMarginCorrect = results.every(r => Math.abs(r.actualMargin - targetMargin) < 0.01);
             
-            let verificationHTML = '<h3>마진 검증</h3>';
+            // Verify freight allocation matches expected formula
+            const freightAllocationCorrect = Math.abs(totalAllocatedFreight - totalFreight) < 1;
+            
+            let verificationHTML = '<h3>마진 및 운임 배분 검증</h3>';
             
             if (allMarginCorrect) {
                 verificationHTML += '<div class="margin-item">✅ 모든 품목의 마진율이 정확합니다.</div>';
@@ -471,17 +488,23 @@
                 verificationHTML += '<div class="margin-item">⚠️ 일부 품목의 마진율이 목표와 다를 수 있습니다.</div>';
             }
             
+            if (freightAllocationCorrect) {
+                verificationHTML += '<div class="margin-item">✅ 운임이 수량 기준으로 정확히 균등배분되었습니다.</div>';
+            } else {
+                verificationHTML += '<div class="margin-item">⚠️ 운임 배분에 오차가 있습니다.</div>';
+            }
+            
             verificationHTML += `
                 <div class="margin-item">목표 마진율: <span class="number">${targetMargin.toFixed(2)}%</span></div>
                 <div class="margin-item">총 수량: <span class="number">${totalQuantity}개</span></div>
                 <div class="margin-item">개당 운임: <span class="number">${formatNumber(freightPerUnit)}원</span></div>
                 <div class="margin-item">총 원가: <span class="number">${formatNumber(totalCost)}원</span></div>
-                <div class="margin-item">총 운임: <span class="number">${formatNumber(totalFreight)}원</span></div>
+                <div class="margin-item">총 운임: <span class="number">${formatNumber(totalFreight)}원</span> (배분 합계: <span class="number">${formatNumber(totalAllocatedFreight)}원</span>)</div>
                 <div class="margin-item">총 판매가: <span class="number">${formatNumber(totalSellingPrice)}원</span></div>
             `;
             
             marginVerification.innerHTML = verificationHTML;
-            marginVerification.className = allMarginCorrect ? 'margin-verification' : 'margin-verification error';
+            marginVerification.className = (allMarginCorrect && freightAllocationCorrect) ? 'margin-verification' : 'margin-verification error';
             
             // Show results
             document.getElementById('results').classList.add('show');
