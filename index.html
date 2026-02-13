@@ -44,6 +44,7 @@
             color: #555;
             font-size: 14px;
             border-left: 4px solid #667eea;
+            line-height: 1.6;
         }
         
         .input-section {
@@ -103,7 +104,7 @@
         
         .item-row {
             display: grid;
-            grid-template-columns: 1fr 1fr auto;
+            grid-template-columns: 1fr 1fr 0.8fr auto;
             gap: 10px;
             margin-bottom: 10px;
             align-items: end;
@@ -234,8 +235,11 @@
     <div class="container">
         <h1>판매가 계산기</h1>
         <div class="formula">
-            <strong>공식:</strong> 판매가 = (원가 / (1 - 마진율)) + 운임<br>
-            <strong>예시:</strong> 원가 100만원, 운임 10만원, 마진율 20% → 판매가 = 100만 / 0.8 + 10만 = 135만원 (1,350,000원)
+            <strong>공식:</strong><br>
+            • 판매단가 = (원가 / (1 - 마진율)) + (총 운임 ÷ 총수량)<br>
+            • 총 판매가 = 판매단가 × 수량<br>
+            <strong>예시:</strong> 품목A 2개, 품목B 3개 → 총수량=5개, 총 운임 10만원 → 개당 운임 2만원<br>
+            품목A: 원가 100만원, 마진율 20% → 판매단가 = 100만/0.8 + 2만 = 127만원, 총 판매가 = 127만 × 2 = 254만원
         </div>
         
         <div class="input-section">
@@ -249,20 +253,6 @@
                 <input type="number" id="marginRate" placeholder="예: 20" value="20" min="0" max="100" step="0.1">
             </div>
             
-            <div class="freight-method">
-                <label>운임 배분 방식</label>
-                <div class="radio-group">
-                    <label>
-                        <input type="radio" name="freightMethod" value="equal" checked>
-                        균등 배분
-                    </label>
-                    <label>
-                        <input type="radio" name="freightMethod" value="proportional">
-                        비례 배분 (원가 비율)
-                    </label>
-                </div>
-            </div>
-            
             <div class="items-section">
                 <h3 style="margin-bottom: 15px; color: #333;">품목 정보</h3>
                 <div id="itemsContainer">
@@ -274,6 +264,10 @@
                         <div class="input-group">
                             <label>원가 (원)</label>
                             <input type="number" class="item-cost" placeholder="예: 1000000" value="1000000" min="0">
+                        </div>
+                        <div class="input-group">
+                            <label>수량</label>
+                            <input type="number" class="item-quantity" placeholder="예: 1" value="1" min="1">
                         </div>
                         <button type="button" class="btn-remove" onclick="removeItem(this)" style="display: none;">삭제</button>
                     </div>
@@ -291,8 +285,10 @@
                     <tr>
                         <th>품목명</th>
                         <th>원가 (원)</th>
-                        <th>배분 운임 (원)</th>
-                        <th>판매가 (원)</th>
+                        <th>수량</th>
+                        <th>개당 운임 (원)</th>
+                        <th>판매단가 (원)</th>
+                        <th>총 판매가 (원)</th>
                         <th>실제 마진율 (%)</th>
                     </tr>
                 </thead>
@@ -331,6 +327,10 @@
                     <label>원가 (원)</label>
                     <input type="number" class="item-cost" placeholder="예: 1000000" value="0" min="0">
                 </div>
+                <div class="input-group">
+                    <label>수량</label>
+                    <input type="number" class="item-quantity" placeholder="예: 1" value="1" min="1">
+                </div>
                 <button type="button" class="btn-remove" onclick="removeItem(this)">삭제</button>
             `;
             
@@ -362,7 +362,6 @@
             // Get inputs
             const totalFreight = parseFloat(document.getElementById('totalFreight').value) || 0;
             const marginRate = parseFloat(document.getElementById('marginRate').value) || 0;
-            const freightMethod = document.querySelector('input[name="freightMethod"]:checked').value;
             
             // Validate margin rate
             if (marginRate < 0 || marginRate >= 100) {
@@ -374,72 +373,76 @@
             const itemRows = document.querySelectorAll('.item-row');
             const items = [];
             let totalCost = 0;
+            let totalQuantity = 0;
             
             itemRows.forEach(row => {
                 const name = row.querySelector('.item-name').value || '품목';
-                const cost = parseFloat(row.querySelector('.item-cost').value) || 0;
+                const unitCost = parseFloat(row.querySelector('.item-cost').value) || 0;
+                const quantity = parseFloat(row.querySelector('.item-quantity').value) || 0;
                 
-                if (cost > 0) {
-                    items.push({ name, cost });
-                    totalCost += cost;
+                if (unitCost > 0 && quantity > 0) {
+                    items.push({ name, unitCost, quantity });
+                    totalCost += unitCost * quantity;  // Sum of (unit cost × quantity)
+                    totalQuantity += quantity;
                 }
             });
             
-            if (items.length === 0 || totalCost === 0) {
-                alert('최소 1개 이상의 품목과 원가를 입력해주세요.');
+            if (items.length === 0 || totalCost === 0 || totalQuantity === 0) {
+                alert('최소 1개 이상의 품목과 원가, 수량을 입력해주세요.');
                 return;
             }
             
-            // Calculate freight distribution
+            // Calculate freight per unit (총 운임 ÷ 총수량)
+            const freightPerUnit = totalFreight / totalQuantity;
+            
+            // Calculate results for each item
             const results = items.map(item => {
-                let distributedFreight;
-                
-                if (freightMethod === 'equal') {
-                    // 균등 배분
-                    distributedFreight = totalFreight / items.length;
-                } else {
-                    // 비례 배분 (원가 비율)
-                    distributedFreight = (item.cost / totalCost) * totalFreight;
-                }
-                
-                // 공식: 판매가 = (원가 / (1 - 마진율)) + 운임
+                // 공식: 판매단가 = (원가 / (1 - 마진율)) + (총 운임 ÷ 총수량)
                 const marginRateDecimal = marginRate / 100;
-                const sellingPrice = (item.cost / (1 - marginRateDecimal)) + distributedFreight;
+                const unitSellingPrice = (item.unitCost / (1 - marginRateDecimal)) + freightPerUnit;
                 
-                // 실제 마진율 검증: ((판매가 - 운임 - 원가) / (판매가 - 운임)) * 100
-                const actualMargin = ((sellingPrice - distributedFreight - item.cost) / (sellingPrice - distributedFreight)) * 100;
+                // 총 판매가 = 판매단가 × 수량
+                const totalSellingPrice = unitSellingPrice * item.quantity;
+                
+                // 실제 마진율 검증: ((판매단가 - 개당운임 - 원가) / (판매단가 - 개당운임)) * 100
+                const actualMargin = ((unitSellingPrice - freightPerUnit - item.unitCost) / (unitSellingPrice - freightPerUnit)) * 100;
                 
                 return {
                     name: item.name,
-                    cost: item.cost,
-                    freight: distributedFreight,
-                    sellingPrice: sellingPrice,
+                    unitCost: item.unitCost,
+                    quantity: item.quantity,
+                    freightPerUnit: freightPerUnit,
+                    unitSellingPrice: unitSellingPrice,
+                    totalSellingPrice: totalSellingPrice,
                     actualMargin: actualMargin
                 };
             });
             
             // Display results
-            displayResults(results, totalCost, totalFreight, marginRate, freightMethod);
+            displayResults(results, totalCost, totalFreight, totalQuantity, marginRate);
         }
         
-        function displayResults(results, totalCost, totalFreight, targetMargin, freightMethod) {
+        function displayResults(results, totalCost, totalFreight, totalQuantity, targetMargin) {
             const resultsBody = document.getElementById('resultsBody');
             resultsBody.innerHTML = '';
             
             let totalSellingPrice = 0;
+            const freightPerUnit = totalFreight / totalQuantity;
             
             // Add item rows
             results.forEach(result => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${result.name}</td>
-                    <td class="number">${formatNumber(result.cost)}</td>
-                    <td class="number">${formatNumber(result.freight)}</td>
-                    <td class="number">${formatNumber(result.sellingPrice)}</td>
+                    <td class="number">${formatNumber(result.unitCost)}</td>
+                    <td class="number">${result.quantity}</td>
+                    <td class="number">${formatNumber(result.freightPerUnit)}</td>
+                    <td class="number">${formatNumber(result.unitSellingPrice)}</td>
+                    <td class="number">${formatNumber(result.totalSellingPrice)}</td>
                     <td class="number">${result.actualMargin.toFixed(2)}</td>
                 `;
                 resultsBody.appendChild(row);
-                totalSellingPrice += result.sellingPrice;
+                totalSellingPrice += result.totalSellingPrice;
             });
             
             // Add total row
@@ -448,7 +451,9 @@
             totalRow.innerHTML = `
                 <td>합계</td>
                 <td class="number">${formatNumber(totalCost)}</td>
-                <td class="number">${formatNumber(totalFreight)}</td>
+                <td class="number">${totalQuantity}</td>
+                <td>-</td>
+                <td>-</td>
                 <td class="number">${formatNumber(totalSellingPrice)}</td>
                 <td>-</td>
             `;
@@ -468,7 +473,8 @@
             
             verificationHTML += `
                 <div class="margin-item">목표 마진율: <span class="number">${targetMargin.toFixed(2)}%</span></div>
-                <div class="margin-item">운임 배분: ${freightMethod === 'equal' ? '균등 배분' : '비례 배분 (원가 비율)'}</div>
+                <div class="margin-item">총 수량: <span class="number">${totalQuantity}개</span></div>
+                <div class="margin-item">개당 운임: <span class="number">${formatNumber(freightPerUnit)}원</span></div>
                 <div class="margin-item">총 원가: <span class="number">${formatNumber(totalCost)}원</span></div>
                 <div class="margin-item">총 운임: <span class="number">${formatNumber(totalFreight)}원</span></div>
                 <div class="margin-item">총 판매가: <span class="number">${formatNumber(totalSellingPrice)}원</span></div>
