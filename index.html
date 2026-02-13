@@ -477,8 +477,9 @@
             const marginVerification = document.getElementById('marginVerification');
             const allMarginCorrect = results.every(r => Math.abs(r.actualMargin - targetMargin) < 0.01);
             
-            // Verify freight allocation matches expected formula
-            const freightAllocationCorrect = Math.abs(totalAllocatedFreight - totalFreight) < 1;
+            // Verify freight allocation matches expected formula (allow 1 won tolerance for rounding)
+            const FREIGHT_ALLOCATION_TOLERANCE = 1;
+            const freightAllocationCorrect = Math.abs(totalAllocatedFreight - totalFreight) < FREIGHT_ALLOCATION_TOLERANCE;
             
             let verificationHTML = '<h3>마진 및 운임 배분 검증</h3>';
             
