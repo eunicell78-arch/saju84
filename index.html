@@ -383,12 +383,12 @@
             
             itemRows.forEach(row => {
                 const name = row.querySelector('.item-name').value || '품목';
-                const unitCost = parseFloat(row.querySelector('.item-cost').value) || 0;
+                const costKRW = parseFloat(row.querySelector('.item-cost').value) || 0;
                 const quantity = parseFloat(row.querySelector('.item-quantity').value) || 0;
                 
-                if (unitCost > 0 && quantity > 0) {
-                    items.push({ name, unitCost, quantity });
-                    totalCost += unitCost * quantity;  // Sum of (unit cost × quantity)
+                if (costKRW > 0 && quantity > 0) {
+                    items.push({ name, costKRW, quantity });
+                    totalCost += costKRW;  // Sum of total costs
                     totalQuantity += quantity;
                 }
             });
@@ -398,31 +398,25 @@
                 return;
             }
             
-            // Calculate freight per unit (총 운임 ÷ 총수량)
-            const freightPerUnit = totalFreight / totalQuantity;
+            // Method 1: Equal distribution - 전체 품목 총수량 기준 균등배분
+            const equalFreightPerUnit = totalFreight / totalQuantity; // 개당 운임
             
-            // Calculate results for each item
-            const results = items.map(item => {
-                // 공식: 판매단가 = (원가 / (1 - 마진율)) + (총 운임 ÷ 총수량)
-                const marginRateDecimal = marginRate / 100;
-                const unitSellingPrice = (item.unitCost / (1 - marginRateDecimal)) + freightPerUnit;
+            const results = items.map(p => {
+                const freight = equalFreightPerUnit * p.quantity; // 이 품목의 운임 배분
+                const sellingPricePerUnit = (p.costKRW / p.quantity) / (1 - marginRate / 100) + equalFreightPerUnit; // 1개당 판매가
+                const totalSellingPrice = sellingPricePerUnit * p.quantity; // 총 판매가
                 
-                // 총 판매가 = 판매단가 × 수량
-                const totalSellingPrice = unitSellingPrice * item.quantity;
-                
-                // 품목별 총 배분 운임 = 개당 운임 × 수량
-                const itemTotalFreight = freightPerUnit * item.quantity;
-                
-                // 실제 마진율 검증: ((판매단가 - 개당운임 - 원가) / (판매단가 - 개당운임)) * 100
-                const actualMargin = ((unitSellingPrice - freightPerUnit - item.unitCost) / (unitSellingPrice - freightPerUnit)) * 100;
+                // 실제 마진율 검증: ((판매단가 - 개당운임 - (원가/수량)) / (판매단가 - 개당운임)) * 100
+                const unitCost = p.costKRW / p.quantity;
+                const actualMargin = ((sellingPricePerUnit - equalFreightPerUnit - unitCost) / (sellingPricePerUnit - equalFreightPerUnit)) * 100;
                 
                 return {
-                    name: item.name,
-                    unitCost: item.unitCost,
-                    quantity: item.quantity,
-                    freightPerUnit: freightPerUnit,
-                    itemTotalFreight: itemTotalFreight,
-                    unitSellingPrice: unitSellingPrice,
+                    name: p.name,
+                    unitCost: unitCost,
+                    quantity: p.quantity,
+                    freightPerUnit: equalFreightPerUnit,
+                    itemTotalFreight: freight,
+                    unitSellingPrice: sellingPricePerUnit,
                     totalSellingPrice: totalSellingPrice,
                     actualMargin: actualMargin
                 };
@@ -438,7 +432,7 @@
             
             let totalSellingPrice = 0;
             let totalAllocatedFreight = 0;
-            const freightPerUnit = totalFreight / totalQuantity;
+            const equalFreightPerUnit = totalFreight / totalQuantity;
             
             // Add item rows
             results.forEach(result => {
@@ -498,7 +492,7 @@
             verificationHTML += `
                 <div class="margin-item">목표 마진율: <span class="number">${targetMargin.toFixed(2)}%</span></div>
                 <div class="margin-item">총 수량: <span class="number">${totalQuantity}개</span></div>
-                <div class="margin-item">개당 운임: <span class="number">${formatNumber(freightPerUnit)}원</span></div>
+                <div class="margin-item">개당 운임: <span class="number">${formatNumber(equalFreightPerUnit)}원</span></div>
                 <div class="margin-item">총 원가: <span class="number">${formatNumber(totalCost)}원</span></div>
                 <div class="margin-item">총 운임: <span class="number">${formatNumber(totalFreight)}원</span> (배분 합계: <span class="number">${formatNumber(totalAllocatedFreight)}원</span>)</div>
                 <div class="margin-item">총 판매가: <span class="number">${formatNumber(totalSellingPrice)}원</span></div>
