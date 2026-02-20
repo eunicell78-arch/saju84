@@ -107,7 +107,7 @@ with st.sidebar:
         st.rerun()
 
 
-def get_saju_interpretation(saju_result: dict, gender: str, occupation: str, student_grade: Optional[str] = None) -> str:
+def get_saju_interpretation(saju_result: dict, gender: str, occupation: str, student_grade: Optional[str] = None, marital_status: str = "기타", children_status: str = "자녀없음") -> str:
     """
     사주 용어 기반 공감형 풀이
     """
@@ -116,11 +116,18 @@ def get_saju_interpretation(saju_result: dict, gender: str, occupation: str, stu
     time_unknown = saju_result.get('hour_pillar') == '시간미상' or saju_result.get('time_unknown', False)
 
     # 사주 데이터 공통 블록
-    saju_data_block = f"""## 생년월일시
-{saju_result['birth_date']}
-성별: {gender}
-{'학년: ' + student_grade if is_student else '직업: ' + occupation}
-{'(출생시간 정보 없음 — 시주 제외하고 해석)' if time_unknown else ''}
+    header_lines = [
+        "## 생년월일시",
+        saju_result['birth_date'],
+        f"성별: {gender}",
+        f"{'학년: ' + student_grade if is_student else '직업: ' + occupation}",
+    ]
+    if not is_student:
+        header_lines.append(f"결혼여부: {marital_status} / 자녀여부: {children_status}")
+    if time_unknown:
+        header_lines.append("(출생시간 정보 없음 — 시주 제외하고 해석)")
+
+    saju_data_block = "\n".join(header_lines) + f"""
 
 ## 사주팔자
 연주(年柱): {saju_result['year_pillar']} ({saju_result['year_hanja']})
@@ -252,6 +259,17 @@ CRITICAL OUTPUT RULES (follow strictly — violations are not acceptable):
 9. Total output MUST be 3000 Korean characters or more (aim for 3200–4500 characters).
 10. Language: Natural, warm Korean. Classical Saju terms are welcome but must always be explained in plain language."""
 
+        # Section 5 wording depends on marital/children status
+        unmarried_no_children = (marital_status == "미혼" and children_status == "자녀없음")
+        if unmarried_no_children:
+            section5_prompt = """## 5. 올해운세 (재물운 건강운 가족·돌봄 흐름 애정운)
+
+올해(2025년 을사년)의 전반적인 운세를 풀어주세요. 재물 쪽, 건강 쪽, 가족·돌봄/관계 확장 쪽(부모님·형제·조카·반려동물·지인 돌봄 등 돌봄 역할과 책임의 균형, 관계 확장), 애정 쪽을 각각 문단으로 자연스럽게 다루되, 번호나 불릿 없이 "재물 쪽은...", "건강 쪽은...", "가족·돌봄 흐름을 보면...", "애정 쪽은..." 같은 자연스러운 문장으로 시작해 문단 흐름을 이어가세요. "자녀운"이라는 표현은 절대 사용하지 마세요. 4문단 내외로 작성해주세요."""
+        else:
+            section5_prompt = """## 5. 올해운세 (재물운 건강운 자녀운 애정운)
+
+올해(2025년 을사년)의 전반적인 운세를 풀어주세요. 재물 쪽, 건강 쪽, 자녀 쪽, 애정 쪽을 각각 문단으로 자연스럽게 다루되, 번호나 불릿 없이 "재물 쪽은...", "건강 쪽은...", "자녀 쪽은...", "애정 쪽은..." 같은 자연스러운 문장으로 시작해 문단 흐름을 이어가세요. 4문단 내외로 작성해주세요."""
+
         user_prompt = f"""다음 사주팔자를 분석하여, 경험 많은 사주 상담사가 직접 상담하듯이 **문단형 풀이**를 작성해주세요.
 반드시 상담받는 분에게 직접 말하는 2인칭 대화체로 작성하세요. 모든 섹션 본문은 자연스러운 문단으로 작성하고, 리스트/번호/불릿/표/별점은 절대 사용하지 마세요.
 
@@ -289,9 +307,7 @@ CRITICAL OUTPUT RULES (follow strictly — violations are not acceptable):
 
 ---
 
-## 5. 올해운세 (재물운 건강운 자녀운 애정운)
-
-올해(2025년 을사년)의 전반적인 운세를 풀어주세요. 재물 쪽, 건강 쪽, 자녀 쪽, 애정 쪽을 각각 문단으로 자연스럽게 다루되, 번호나 불릿 없이 "재물 쪽은...", "건강 쪽은...", "자녀 쪽은...", "애정 쪽은..." 같은 자연스러운 문장으로 시작해 문단 흐름을 이어가세요. 4문단 내외로 작성해주세요.
+{section5_prompt}
 
 ---
 
@@ -460,6 +476,23 @@ with col1:
             help="현재 학년을 선택해주세요."
         )
     
+    # 결혼 여부 및 자녀 여부 입력 (비학생에게만 표시)
+    marital_status = "기타"
+    children_status = "자녀없음"
+    if occupation_type != "학생":
+        marital_status = st.radio(
+            "결혼 여부",
+            options=['미혼', '기혼', '기타'],
+            horizontal=True,
+            help="결혼 여부를 선택하세요."
+        )
+        children_status = st.radio(
+            "자녀 여부",
+            options=['자녀없음', '자녀있음'],
+            horizontal=True,
+            help="자녀 여부를 선택하세요."
+        )
+    
     # datetime 객체 생성 (일단 입력된 날짜로 생성, 음력인 경우 아래에서 변환)
     year = birth_date.year
     month = birth_date.month
@@ -496,6 +529,8 @@ with col1:
         st.session_state['is_student'] = (occupation_type == "학생")
         st.session_state['grade_level'] = grade_level if occupation_type == "학생" else ""
         st.session_state['time_unknown'] = time_unknown
+        st.session_state['marital_status'] = marital_status if occupation_type != "학생" else "기타"
+        st.session_state['children_status'] = children_status if occupation_type != "학생" else "자녀없음"
         # 대화 히스토리 초기화 (첫 계산 시에만)
         if 'conversation_history' not in st.session_state:
             st.session_state['conversation_history'] = []
@@ -750,8 +785,10 @@ if st.session_state.get('saju_calculated', False):
                 gender = st.session_state.get('gender', '남')
                 occupation = st.session_state.get('occupation', '일반')
                 student_grade = st.session_state.get('grade_level', None)
+                marital_status = st.session_state.get('marital_status', '기타')
+                children_status = st.session_state.get('children_status', '자녀없음')
                 
-                interpretation = get_saju_interpretation(result, gender, occupation, student_grade)
+                interpretation = get_saju_interpretation(result, gender, occupation, student_grade, marital_status, children_status)
                 
                 st.session_state['interpretation'] = interpretation
                 st.session_state['saju_result'] = result
