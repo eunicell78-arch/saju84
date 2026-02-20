@@ -114,29 +114,9 @@ def get_saju_interpretation(saju_result: dict, gender: str, occupation: str, stu
     
     is_student = occupation == "학생" and student_grade is not None
     time_unknown = saju_result.get('hour_pillar') == '시간미상' or saju_result.get('time_unknown', False)
-    
-    # 새로운 시스템 프롬프트
-    # Note: Using English for system instructions is intentional - GPT models often
-    # follow English instructions more reliably even when generating Korean output
-    system_prompt = """You are an experienced traditional Saju (사주명리) counselor with deep knowledge of classical Chinese metaphysics. You speak directly to the person as a warm, knowledgeable mentor having a real one-on-one consultation.
 
-CRITICAL OUTPUT RULES (follow strictly — violations are not acceptable):
-1. Write ONLY in flowing paragraph form. Absolutely NO bullet points, NO numbered lists, NO dash-prefixed list items, NO tables, NO star ratings (★☆), NO emoji symbols (✅ ⚠️ ❌) used as list markers.
-2. Do NOT use template sub-labels such as "사주 근거:", "구체적 재능:", "어떤 상황에서 빛나는지:", "강점:", "약점:", "전략:", "특징:", "시험 운:", "결론:" etc.
-3. Address the reader directly in second person — use "당신" or implied second person. Make it feel like real, warm conversation.
-4. Each section must include at least one concrete, vivid life situation example naturally woven into the text (e.g., school life, family dynamics, friendships, exam pressure, sleep habits, emotional ups and downs).
-5. Blend empathy and warmth naturally — acknowledge how the person might feel, not just what the Saju indicates.
-6. Avoid fatalistic or deterministic language. No fear-based predictions. No exaggeration.
-7. Avoid vague motivational phrases: 노력, 긍정, 열심히, 성공, 운이 좋다, 운이 나쁘다, 잘 될 것이다.
-8. Always connect Saju terms to real, observable, everyday life patterns.
-9. Total output MUST be 1000 Korean characters or more (aim for 1200–1800 characters).
-10. Language: Natural, warm Korean. Classical Saju terms are welcome but must always be explained in plain language."""
-
-    # 사용자 프롬프트
-    user_prompt = f"""다음 사주팔자를 분석하여, 경험 많은 사주 상담사가 직접 상담하듯이 **문단형 풀이**를 작성해주세요.
-반드시 상담받는 분에게 직접 말하는 2인칭 대화체로 작성하세요. 모든 섹션 본문은 자연스러운 문단으로 작성하고, 리스트/번호/불릿/표/별점은 절대 사용하지 마세요.
-
-## 생년월일시
+    # 사주 데이터 공통 블록
+    saju_data_block = f"""## 생년월일시
 {saju_result['birth_date']}
 성별: {gender}
 {'학년: ' + student_grade if is_student else '직업: ' + occupation}
@@ -155,7 +135,30 @@ CRITICAL OUTPUT RULES (follow strictly — violations are not acceptable):
 연간: {saju_result.get('sipsin', {}).get('year_stem', '-')}
 월간: {saju_result.get('sipsin', {}).get('month_stem', '-')}
 일간: {saju_result.get('sipsin', {}).get('day_stem', '-')} (본인)
-시간: {saju_result.get('sipsin', {}).get('hour_stem', '-')}
+시간: {saju_result.get('sipsin', {}).get('hour_stem', '-')}"""
+
+    # Note: Using English for system instructions is intentional - GPT models often
+    # follow English instructions more reliably even when generating Korean output
+    if is_student:
+        # 학생 전용 프롬프트 (기존 구조 유지)
+        system_prompt = """You are an experienced traditional Saju (사주명리) counselor with deep knowledge of classical Chinese metaphysics. You speak directly to the person as a warm, knowledgeable mentor having a real one-on-one consultation.
+
+CRITICAL OUTPUT RULES (follow strictly — violations are not acceptable):
+1. Write ONLY in flowing paragraph form. Absolutely NO bullet points, NO numbered lists, NO dash-prefixed list items, NO tables, NO star ratings (★☆), NO emoji symbols (✅ ⚠️ ❌) used as list markers.
+2. Do NOT use template sub-labels such as "사주 근거:", "구체적 재능:", "어떤 상황에서 빛나는지:", "강점:", "약점:", "전략:", "특징:", "시험 운:", "결론:" etc.
+3. Address the reader directly in second person — use "당신" or implied second person. Make it feel like real, warm conversation.
+4. Each section must include at least one concrete, vivid life situation example naturally woven into the text (e.g., school life, family dynamics, friendships, exam pressure, sleep habits, emotional ups and downs).
+5. Blend empathy and warmth naturally — acknowledge how the person might feel, not just what the Saju indicates.
+6. Avoid fatalistic or deterministic language. No fear-based predictions. No exaggeration.
+7. Avoid vague motivational phrases: 노력, 긍정, 열심히, 성공, 운이 좋다, 운이 나쁘다, 잘 될 것이다.
+8. Always connect Saju terms to real, observable, everyday life patterns.
+9. Total output MUST be 1000 Korean characters or more (aim for 1200–1800 characters).
+10. Language: Natural, warm Korean. Classical Saju terms are welcome but must always be explained in plain language."""
+
+        user_prompt = f"""다음 사주팔자를 분석하여, 경험 많은 사주 상담사가 직접 상담하듯이 **문단형 풀이**를 작성해주세요.
+반드시 상담받는 분에게 직접 말하는 2인칭 대화체로 작성하세요. 모든 섹션 본문은 자연스러운 문단으로 작성하고, 리스트/번호/불릿/표/별점은 절대 사용하지 마세요.
+
+{saju_data_block}
 
 ---
 
@@ -183,19 +186,43 @@ CRITICAL OUTPUT RULES (follow strictly — violations are not acceptable):
 
 ---
 
-{'## 4-학생. 문과/이과 성향\n\n이 분의 사주 구조(천간·지지·식상·인성 조합)를 바탕으로 문과와 이과 중 어느 쪽 성향이 더 강한지, 어떤 전공이나 계열이 잘 맞을 것 같은지 자연스럽게 풀어주세요. 적합한 계열과 피해야 할 방향도 생활 예시와 함께 문단으로 서술해주세요.\n\n---\n\n## 5-학생. 잘하는 과목 / 취약한 과목\n\n잘할 수 있는 과목과 어려움을 겪을 수 있는 과목을 사주 구조로 풀어주세요. 왜 그런지 사주 근거를 자연스럽게 녹이면서, 시험 준비나 학교 수업 상황을 예시로 들어 문단으로 서술해주세요. 보완 방법이나 학습 팁도 자연스럽게 이어서 써주세요.\n\n---\n\n## 6-학생. 공부 방법\n\n이 분에게 가장 잘 맞는 공부 방법(자기주도 학습, 과외, 학원 등)을 사주 구조로 풀어주세요. 어떤 방식이 잘 맞고 어떤 방식이 부담스러울 수 있는지 구체적인 학습 상황 예시와 함께 자연스럽게 문단으로 서술해주세요.\n\n---\n\n## 7-학생. 앞으로 3년간 시험운/학업운\n\n앞으로 3년간(2025, 2026, 2027)의 학업운과 시험운을 사주 구조로 풀어주세요. 각 해의 특징, 주의할 점, 전략을 표나 별점 없이 자연스러운 문단으로 서술해주세요.\n\n---\n\n' if is_student else ''}## {'4' if not is_student else '8'}. 직업 / 재물 운용 스타일
+## 4-학생. 문과/이과 성향
+
+이 분의 사주 구조(천간·지지·식상·인성 조합)를 바탕으로 문과와 이과 중 어느 쪽 성향이 더 강한지, 어떤 전공이나 계열이 잘 맞을 것 같은지 자연스럽게 풀어주세요. 적합한 계열과 피해야 할 방향도 생활 예시와 함께 문단으로 서술해주세요.
+
+---
+
+## 5-학생. 잘하는 과목 / 취약한 과목
+
+잘할 수 있는 과목과 어려움을 겪을 수 있는 과목을 사주 구조로 풀어주세요. 왜 그런지 사주 근거를 자연스럽게 녹이면서, 시험 준비나 학교 수업 상황을 예시로 들어 문단으로 서술해주세요. 보완 방법이나 학습 팁도 자연스럽게 이어서 써주세요.
+
+---
+
+## 6-학생. 공부 방법
+
+이 분에게 가장 잘 맞는 공부 방법(자기주도 학습, 과외, 학원 등)을 사주 구조로 풀어주세요. 어떤 방식이 잘 맞고 어떤 방식이 부담스러울 수 있는지 구체적인 학습 상황 예시와 함께 자연스럽게 문단으로 서술해주세요.
+
+---
+
+## 7-학생. 앞으로 3년간 시험운/학업운
+
+앞으로 3년간(2025, 2026, 2027)의 학업운과 시험운을 사주 구조로 풀어주세요. 각 해의 특징, 주의할 점, 전략을 표나 별점 없이 자연스러운 문단으로 서술해주세요.
+
+---
+
+## 8. 직업 / 재물 운용 스타일
 
 적합한 직업 스타일과 재물 운용 방식을 사주 구조를 근거로 구체적으로 서술해주세요. 어떤 직무 환경이 맞고 어떤 환경을 피해야 하는지, 돈을 다루는 패턴과 투자 성향은 어떤지 생활 예시와 함께 문단으로 써주세요.
 
 ---
 
-## {'5' if not is_student else '9'}. 현재 고민 해석
+## 9. 현재 고민 해석
 
 현재 이 분이 겪고 있을 고민의 원인과 반복되는 패턴을 사주 구조로 분석해주세요. 원인, 패턴, 그리고 실천 가능한 전략을 자연스러운 문단으로 서술해주세요.
 
 ---
 
-## {'6' if not is_student else '10'}. 실천 조언
+## 10. 실천 조언
 
 구체적이고 실천 가능한 조언을 3가지 이상 제안해주세요. 각 조언은 무엇을, 언제, 왜 해야 하는지 사주 근거와 함께 자연스러운 문단으로 작성해주세요.
 
@@ -207,6 +234,76 @@ CRITICAL OUTPUT RULES (follow strictly — violations are not acceptable):
 2인칭 대화체로, 공감과 위로가 담긴 따뜻한 문체로 작성하세요.
 전체 1000자 이상."""
 
+        max_tokens = 4500  # Increased to 4500 to accommodate full output (10 sections for students: 6 general + 4 student-specific)
+
+    else:
+        # 비학생 전용 프롬프트 (5개 섹션, 3000자 이상)
+        system_prompt = """You are an experienced traditional Saju (사주명리) counselor with deep knowledge of classical Chinese metaphysics. You speak directly to the person as a warm, knowledgeable mentor having a real one-on-one consultation.
+
+CRITICAL OUTPUT RULES (follow strictly — violations are not acceptable):
+1. Write ONLY in flowing paragraph form. Absolutely NO bullet points, NO numbered lists, NO dash-prefixed list items, NO tables, NO star ratings (★☆), NO emoji symbols (✅ ⚠️ ❌) used as list markers.
+2. Do NOT use template sub-labels such as "사주 근거:", "구체적 재능:", "어떤 상황에서 빛나는지:", "강점:", "약점:", "전략:", "특징:", "결론:" etc.
+3. Address the reader directly in second person — use "당신" or implied second person. Make it feel like real, warm conversation.
+4. Each section must include at least one concrete, vivid life situation example naturally woven into the text (e.g., work life, family dynamics, relationships, financial decisions, health habits, emotional ups and downs).
+5. Blend empathy and warmth naturally — acknowledge how the person might feel, not just what the Saju indicates.
+6. Avoid fatalistic or deterministic language. No fear-based predictions. No exaggeration.
+7. Avoid vague motivational phrases: 노력, 긍정, 열심히, 성공, 운이 좋다, 운이 나쁘다, 잘 될 것이다.
+8. Always connect Saju terms to real, observable, everyday life patterns.
+9. Total output MUST be 3000 Korean characters or more (aim for 3200–4500 characters).
+10. Language: Natural, warm Korean. Classical Saju terms are welcome but must always be explained in plain language."""
+
+        user_prompt = f"""다음 사주팔자를 분석하여, 경험 많은 사주 상담사가 직접 상담하듯이 **문단형 풀이**를 작성해주세요.
+반드시 상담받는 분에게 직접 말하는 2인칭 대화체로 작성하세요. 모든 섹션 본문은 자연스러운 문단으로 작성하고, 리스트/번호/불릿/표/별점은 절대 사용하지 마세요.
+
+{saju_data_block}
+
+---
+
+# 풀이 양식
+
+아래 5개 섹션을 반드시 순서대로 작성하세요. 섹션 제목(##)은 유지하되, 본문은 모두 자연스러운 문단으로 작성합니다.
+각 섹션에는 실제 생활에서 일어날 수 있는 구체적인 상황 예시(직장/가정/대인관계/건강/재물/감정 등)를 자연스럽게 녹여주세요.
+전체 풀이는 반드시 3000자 이상(권장 3200~4500자)으로 작성하세요.
+
+## 1. 핵심 성향 요약
+
+이 분의 일간과 주요 오행을 바탕으로, 어떤 유형의 사람인지 한눈에 알 수 있도록 소개해주세요. 겉모습과 속마음의 차이, 타인이 느끼는 인상과 본인이 느끼는 내면의 차이, 그리고 약한 오행이나 부족한 부분을 자연스럽게 서술하되, 따뜻하고 공감적인 문장으로 4문단 내외로 작성해주세요.
+
+---
+
+## 2. 기질과 심리 패턴
+
+이 분의 강점과 약점을 사주 구조에 근거해 구체적으로 풀어주세요. 어떤 상황에서 강점이 발휘되고, 어떤 상황에서 스트레스를 받는지 실제 생활 예시와 함께 따뜻하게 서술해주세요. 반복되는 심리 패턴이나 사이클도 자연스럽게 녹여주세요. 4문단 내외로 작성해주세요.
+
+---
+
+## 3. 주요귀인과 살성
+
+이 분의 사주에서 주요 귀인(도움을 주는 사람이나 기운)과 살성(주의해야 할 기운)을 자연스럽게 풀어주세요. 어떤 유형의 사람이나 상황이 도움이 되고, 어떤 유형이 부담이나 갈등을 일으키는지 실제 생활 예시와 함께 서술해주세요. 인간관계와 연애 패턴도 자연스럽게 녹여주세요. 4문단 내외로 작성해주세요.
+
+---
+
+## 4. 평생운세 (초년/중년/말년)
+
+이 분의 평생 흐름을 초년기(0~30대 초반), 중년기(30대 중반~50대), 말년기(60대 이후)로 나누어 자연스럽게 서술해주세요. 각 시기의 주요 특징, 도전, 기회를 사주 구조와 대운 흐름으로 풀어주되, 표나 번호 없이 이어지는 문단으로 작성해주세요. 4문단 내외로 작성해주세요.
+
+---
+
+## 5. 올해운세 (재물운 건강운 자녀운 애정운)
+
+올해(2025년 을사년)의 전반적인 운세를 풀어주세요. 재물 쪽, 건강 쪽, 자녀 쪽, 애정 쪽을 각각 문단으로 자연스럽게 다루되, 번호나 불릿 없이 "재물 쪽은...", "건강 쪽은...", "자녀 쪽은...", "애정 쪽은..." 같은 자연스러운 문장으로 시작해 문단 흐름을 이어가세요. 4문단 내외로 작성해주세요.
+
+---
+
+**중요:**
+반드시 위 5개 섹션만 작성하세요. 추가 섹션을 만들지 마세요.
+모든 섹션을 문단형으로 작성하세요. 리스트, 표, 번호, 불릿, 별점 사용 금지.
+반복 레이블("사주 근거:", "구체적 재능:", "어떤 상황에서 빛나는지:" 등) 사용 금지.
+2인칭 대화체로, 공감과 위로가 담긴 따뜻한 문체로 작성하세요.
+전체 반드시 3000자 이상."""
+
+        max_tokens = 6000  # Increased to 6000 to accommodate 3000+ character non-student output
+
     try:
         response = openai.chat.completions.create(
             model="gpt-4o",
@@ -214,7 +311,7 @@ CRITICAL OUTPUT RULES (follow strictly — violations are not acceptable):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            max_tokens=4500,  # Increased to 4500 to accommodate full output (10 sections for students: 6 general + 4 student-specific)
+            max_tokens=max_tokens,
             temperature=0.75
         )
         
