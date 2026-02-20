@@ -118,162 +118,94 @@ def get_saju_interpretation(saju_result: dict, gender: str, occupation: str, stu
     # 새로운 시스템 프롬프트
     # Note: Using English for system instructions is intentional - GPT models often
     # follow English instructions more reliably even when generating Korean output
-    system_prompt = """You are a professional traditional Saju (사주명리) consultant.
+    system_prompt = """You are an experienced traditional Saju (사주명리) counselor with deep knowledge of classical Chinese metaphysics. You speak directly to the person as a warm, knowledgeable mentor having a real one-on-one consultation.
 
-You combine classical Saju terminology with empathetic, practical life guidance.
-
-Core Principles:
-1. **Always connect Saju terms to real-life patterns**
-   - Example: "신금(辛) 일간 + 수(水) 과다 → 생각 많고 예민한 분석가형"
-
-2. **Use concrete, vivid expressions**
-   - "머릿속 계획은 많은데 밀어붙이는 힘이 부족"
-   - "잠들기 전에 생각이 많아지는 패턴"
-
-3. **Describe patterns as cycles**
-   - "A → B → C → D" format
-
-4. **Warm, empathetic tone**
-   - "~하기 쉽습니다", "~할 수 있어요"
-
-5. **Specific, actionable advice**
-   - Not: "더 노력하세요"
-   - Yes: "주 1회 나만의 시간 고정하기"
-
-Language: Natural, warm Korean with classical Saju terms."""
+CRITICAL OUTPUT RULES (follow strictly — violations are not acceptable):
+1. Write ONLY in flowing paragraph form. Absolutely NO bullet points, NO numbered lists, NO dash-prefixed list items, NO tables, NO star ratings (★☆), NO emoji symbols (✅ ⚠️ ❌) used as list markers.
+2. Do NOT use template sub-labels such as "사주 근거:", "구체적 재능:", "어떤 상황에서 빛나는지:", "강점:", "약점:", "전략:", "특징:", "시험 운:", "결론:" etc.
+3. Address the reader directly in second person — use "당신" or implied second person. Make it feel like real, warm conversation.
+4. Each section must include at least one concrete, vivid life situation example naturally woven into the text (e.g., school life, family dynamics, friendships, exam pressure, sleep habits, emotional ups and downs).
+5. Blend empathy and warmth naturally — acknowledge how the person might feel, not just what the Saju indicates.
+6. Avoid fatalistic or deterministic language. No fear-based predictions. No exaggeration.
+7. Avoid vague motivational phrases: 노력, 긍정, 열심히, 성공, 운이 좋다, 운이 나쁘다, 잘 될 것이다.
+8. Always connect Saju terms to real, observable, everyday life patterns.
+9. Total output MUST be 1000 Korean characters or more (aim for 1200–1800 characters).
+10. Language: Natural, warm Korean. Classical Saju terms are welcome but must always be explained in plain language."""
 
     # 사용자 프롬프트
-    user_prompt = f"""다음 사주팔자를 분석하여 **사주 용어 기반 공감형 풀이**를 해주세요.
+    user_prompt = f"""다음 사주팔자를 분석하여, 경험 많은 사주 상담사가 직접 상담하듯이 **문단형 풀이**를 작성해주세요.
+반드시 상담받는 분에게 직접 말하는 2인칭 대화체로 작성하세요. 모든 섹션 본문은 자연스러운 문단으로 작성하고, 리스트/번호/불릿/표/별점은 절대 사용하지 마세요.
 
 ## 생년월일시
 {saju_result['birth_date']}
 성별: {gender}
 {'학년: ' + student_grade if is_student else '직업: ' + occupation}
-{'⚠️ 출생시간 정보 없음 (시주 제외하고 해석)' if time_unknown else ''}
+{'(출생시간 정보 없음 — 시주 제외하고 해석)' if time_unknown else ''}
 
 ## 사주팔자
-- 연주(年柱): {saju_result['year_pillar']} ({saju_result['year_hanja']})
-- 월주(月柱): {saju_result['month_pillar']} ({saju_result['month_hanja']})
-- 일주(日柱): {saju_result['day_pillar']} ({saju_result['day_hanja']}) ← **일간(본인)**
-- 시주(時柱): {saju_result['hour_pillar']} ({saju_result['hour_hanja']})
+연주(年柱): {saju_result['year_pillar']} ({saju_result['year_hanja']})
+월주(月柱): {saju_result['month_pillar']} ({saju_result['month_hanja']})
+일주(日柱): {saju_result['day_pillar']} ({saju_result['day_hanja']}) — 일간(본인)
+시주(時柱): {saju_result['hour_pillar']} ({saju_result['hour_hanja']})
 
 ## 오행 분포
 {' '.join([f'{k}: {v}개' for k, v in saju_result.get('elements', {}).items()])}
 
 ## 십신(十神)
-- 연간: {saju_result.get('sipsin', {}).get('year_stem', '-')}
-- 월간: {saju_result.get('sipsin', {}).get('month_stem', '-')}
-- 일간: {saju_result.get('sipsin', {}).get('day_stem', '-')} (본인)
-- 시간: {saju_result.get('sipsin', {}).get('hour_stem', '-')}
+연간: {saju_result.get('sipsin', {}).get('year_stem', '-')}
+월간: {saju_result.get('sipsin', {}).get('month_stem', '-')}
+일간: {saju_result.get('sipsin', {}).get('day_stem', '-')} (본인)
+시간: {saju_result.get('sipsin', {}).get('hour_stem', '-')}
 
 ---
 
 # 풀이 양식
 
-## 1) 핵심 성향 요약 (3줄)
+각 섹션은 반드시 문단형으로 작성하세요. 섹션 제목(##)은 유지하되, 본문은 모두 이어진 문단으로 작성합니다.
+각 섹션에는 실제 생활에서 일어날 수 있는 구체적인 상황 예시(학교/가정/친구/시험/수면/감정 기복 등)를 자연스럽게 녹여주세요.
+전체 풀이는 최소 1000자 이상(가능하면 1200~1800자)으로 작성하세요.
 
-**첫 줄**: 일간 + 주요 오행 특징 → "○○형" 한 줄 정의
-- 예: "신금 일간에 수(水) 기운이 아주 강하고, 토(土) 인성이 받쳐주는 **'생각 많고 예민하지만 책임감 있는 분석가형'**입니다."
+## 1. 핵심 성향 요약
 
-**둘째 줄**: 겉모습 vs 속마음 대비
-- 예: "겉으로는 차분·단단해 보이지만, 속으로는 감정과 걱정이 많이 돌아가는 스타일이라 완벽·실수에 대한 압박이 큽니다."
-
-**셋째 줄**: 약한 오행이나 부족한 부분 언급
-- 예: "목(木) 재성이 약해서, **'머릿속 계획은 많은데 내 이익을 위해 밀어붙이는 힘'**이 상대적으로 부족하게 느껴질 수 있습니다."
+이 분의 일간과 주요 오행을 바탕으로, 어떤 유형의 사람인지 한눈에 알 수 있도록 소개해주세요. 겉모습과 속마음의 차이, 그리고 약한 오행이나 부족한 부분을 자연스럽게 서술하되, 따뜻하고 공감적인 문장으로 3문단 내외로 작성해주세요.
 
 ---
 
-## 2) 기질과 심리 패턴 (강점/약점)
+## 2. 기질과 심리 패턴
 
-### 강점
-
-**[사주 요소 1]**
-- 사주 근거 (천간·지지·오행)
-- 구체적 재능·능력
-- 어떤 상황에서 빛나는지
-
-**[사주 요소 2]**
-- (위와 동일 구조)
-
-**[사주 요소 3]**
-- (위와 동일 구조)
+이 분의 강점과 약점을 사주 구조에 근거해 구체적으로 풀어주세요. 어떤 상황에서 강점이 발휘되고, 어떤 상황에서 스트레스를 받는지 실제 생활 예시와 함께 따뜻하게 서술해주세요. 반복되는 심리 패턴이나 사이클도 자연스럽게 녹여주세요.
 
 ---
 
-### 약점·스트레스 포인트
+## 3. 인간관계 / 연애 패턴
 
-**[과다 오행]으로 인한 [문제]**
-
-- 어떤 패턴이 반복되는지
-- 구체적 상황 예시
-- 심리적 압박
-
-**[부족 오행]으로 인한 [문제]**
-
-- 어떤 어려움이 있는지
-- 구체적 상황 예시
-- 장기적 영향
+이 분의 대인관계 스타일과 연애 패턴을 사주 구조로 풀어주세요. 겉모습과 속마음의 차이, 감정 표현 방식, 신뢰와 거리감 패턴, 갈등이 생길 때 어떤 사이클이 반복되는지 구체적인 상황 예시를 포함해 문단으로 자연스럽게 서술해주세요.
 
 ---
 
-## 3) 인간관계 / 연애 패턴
+{'## 4-학생. 문과/이과 성향\n\n이 분의 사주 구조(천간·지지·식상·인성 조합)를 바탕으로 문과와 이과 중 어느 쪽 성향이 더 강한지, 어떤 전공이나 계열이 잘 맞을 것 같은지 자연스럽게 풀어주세요. 적합한 계열과 피해야 할 방향도 생활 예시와 함께 문단으로 서술해주세요.\n\n---\n\n## 5-학생. 잘하는 과목 / 취약한 과목\n\n잘할 수 있는 과목과 어려움을 겪을 수 있는 과목을 사주 구조로 풀어주세요. 왜 그런지 사주 근거를 자연스럽게 녹이면서, 시험 준비나 학교 수업 상황을 예시로 들어 문단으로 서술해주세요. 보완 방법이나 학습 팁도 자연스럽게 이어서 써주세요.\n\n---\n\n## 6-학생. 공부 방법\n\n이 분에게 가장 잘 맞는 공부 방법(자기주도 학습, 과외, 학원 등)을 사주 구조로 풀어주세요. 어떤 방식이 잘 맞고 어떤 방식이 부담스러울 수 있는지 구체적인 학습 상황 예시와 함께 자연스럽게 문단으로 서술해주세요.\n\n---\n\n## 7-학생. 앞으로 3년간 시험운/학업운\n\n앞으로 3년간(2025, 2026, 2027)의 학업운과 시험운을 사주 구조로 풀어주세요. 각 해의 특징, 주의할 점, 전략을 표나 별점 없이 자연스러운 문단으로 서술해주세요.\n\n---\n\n' if is_student else ''}## {'4' if not is_student else '8'}. 직업 / 재물 운용 스타일
 
-**겉모습 vs 속마음**
-- 사주 근거 + 대인관계 스타일
-
-**정관/편관/식상 등을 활용한 연애 패턴**
-- 감정 표현 방식
-- 신뢰·거리감 패턴
-
-**갈등 사이클**
-- A → B → C → D 형식으로
-
-**적합한 사람 / 주의할 점**
+적합한 직업 스타일과 재물 운용 방식을 사주 구조를 근거로 구체적으로 서술해주세요. 어떤 직무 환경이 맞고 어떤 환경을 피해야 하는지, 돈을 다루는 패턴과 투자 성향은 어떤지 생활 예시와 함께 문단으로 써주세요.
 
 ---
 
-{'## 4-학생. 문과/이과 성향\n\n### 사주로 본 성향\n- 천간·지지·식상·인성 조합 분석\n- 문과 vs 이과 적합도\n\n### 진로 적성 및 전공 추천\n**문과 계열** (3~5개 + 사주 근거)\n**이과 계열** (3~5개 + 사주 근거)\n\n### 피해야 할 방향\n\n---\n\n## 5-학생. 잘하는 과목 / 취약한 과목\n\n### 잘하는 과목\n- 사주 근거 (식상→언어, 인성→암기 등)\n- 구체적 과목명\n\n### 취약한 과목\n- 약한 오행과 연결\n- 왜 어려운지\n\n### 보완·강화 방법\n- 과목별 구체적 학습 팁\n\n---\n\n## 6-학생. 공부 방법\n\n### 자기주도 학습 ★★★★☆\n**✅ 장점** (사주 근거)\n**⚠️ 주의점**\n**추천 방식**\n\n### 과외 ★★★★☆\n**✅ 장점** (사주 근거)\n**⚠️ 주의점**\n**추천 방식**\n\n### 대형 학원 ★★☆☆☆\n**❌ 맞지 않는 이유**\n**✅ 그래도 가야 한다면**\n\n**결론: 최적 조합 추천**\n\n---\n\n## 7-학생. 앞으로 3년간 시험운/학업운\n\n### 2025년 (올해) - ★★★★☆\n**특징**\n**전략**\n**시험 운**\n\n### 2026년 (내년) - ★★★☆☆\n**특징**\n**전략**\n**시험 운**\n\n### 2027년 (3년 후) - ★★★★★\n**특징**\n**전략**\n**시험 운**\n\n**3년 전략 요약 (표)**\n\n---\n\n' if is_student else ''}## {'4' if not is_student else '8'}. 직업 / 재물 운용 스타일
+## {'5' if not is_student else '9'}. 현재 고민 해석
 
-### 직업 스타일
-- 적합한 직업 (구체적 직무)
-- 피해야 할 환경
-
-### 재물 운용 스타일
-- 돈 관리 패턴
-- 투자 성향
-- 주의사항
+현재 이 분이 겪고 있을 고민의 원인과 반복되는 패턴을 사주 구조로 분석해주세요. 원인, 패턴, 그리고 실천 가능한 전략을 자연스러운 문단으로 서술해주세요.
 
 ---
 
-## {'5' if not is_student else '9'}. 현재 고민 해석 (원인 - 패턴 - 전략)
+## {'6' if not is_student else '10'}. 실천 조언
 
-### ① 원인 추정
-사주 구조 + 현재 나이/시기 연결
-
-### ② 반복되는 패턴
-A → B → C → D 사이클
-
-### ③ 전략 포인트
-- 약한 오행 보완 방법
-- 구체적 행동 제안 (3개)
-
----
-
-## {'6' if not is_student else '10'}. 실천 조언 3가지 (구체적으로)
-
-각 조언마다:
-- **무엇을**: 구체적 행동
-- **언제**: 주기/타이밍
-- **왜**: 사주 근거
+구체적이고 실천 가능한 조언을 3가지 이상 제안해주세요. 각 조언은 무엇을, 언제, 왜 해야 하는지 사주 근거와 함께 자연스러운 문단으로 작성해주세요.
 
 ---
 
 **중요:**
-- 사주 용어를 반드시 일상 언어와 연결
-- "~입니다" 보다 "~하기 쉽습니다", "~할 수 있어요"
-- 구체적이고 생생한 표현
-- 패턴은 사이클 형식 (A→B→C)
-- 따뜻하고 공감적인 어조"""
+모든 섹션을 문단형으로 작성하세요. 리스트, 표, 번호, 불릿, 별점 사용 금지.
+반복 레이블("사주 근거:", "구체적 재능:", "어떤 상황에서 빛나는지:" 등) 사용 금지.
+2인칭 대화체로, 공감과 위로가 담긴 따뜻한 문체로 작성하세요.
+전체 1000자 이상."""
 
     try:
         response = openai.chat.completions.create(
@@ -297,27 +229,16 @@ def get_followup_answer(question: str, previous_interpretation: str, saju_info: 
     구조 패턴 분석 기반 추가 질문 답변
     """
     
-    system_prompt = """You are a professional Saju consultant and life-strategy analyst.
+    system_prompt = """You are an experienced traditional Saju (사주명리) counselor. You speak warmly and directly to the person as a trusted mentor.
 
-You do NOT act as a fortune teller.
-You analyze structural patterns, psychological tendencies, and behavioral strategies.
-
-Core Principles:
-- No fatalistic or deterministic language
-- No vague self-help expressions (노력, 긍정, 열심히, 성공, 운이 좋다, 운이 나쁘다, 잘 될 것이다)
-- No fear-based predictions
-- Focus on patterns, probabilities, and practical strategies
-- Always prioritize empathy and realism
-
-Tone:
-Warm, calm, intelligent, grounded, and trustworthy.
-Never dramatic. Never mystical.
-
-Answer Style:
-- Provide concrete, observable examples
-- Use specific, measurable advice when applicable
-- Include emotional insights when relevant
-- Maintain professional mentorship tone"""
+CRITICAL OUTPUT RULES:
+1. Write ONLY in flowing paragraph form. No bullet points, no numbered lists, no tables, no star ratings, no template sub-labels.
+2. Address the reader directly in second person. Make it feel like a real, warm conversation.
+3. Include concrete, vivid life situation examples naturally woven into your answer.
+4. Avoid fatalistic or deterministic language. No fear-based predictions.
+5. Avoid vague phrases: 노력, 긍정, 열심히, 성공, 운이 좋다, 운이 나쁘다, 잘 될 것이다.
+6. Connect all Saju terms to real, observable everyday patterns.
+7. Language: Natural, warm Korean."""
     
     user_prompt = f"""## 이전 풀이
 {previous_interpretation}
@@ -330,16 +251,9 @@ Answer Style:
 
 ---
 
-위 질문에 대해 구조 패턴 분석 철학에 맞춰 답변해주세요.
+위 추가 질문에 대해, 경험 많은 사주 상담사가 직접 상담하듯이 따뜻하고 공감적인 문단형으로 답변해주세요.
 
-**작성 원칙:**
-- 구체적 상황과 행동 패턴으로 설명
-- 실천 가능한 조언 포함
-- 감정적 공감 표현
-- 금지 단어 사용 금지: 노력, 긍정, 열심히, 성공, 운이 좋다, 운이 나쁘다, 잘 될 것이다
-- 따뜻하고 현실적인 멘토 어조
-
-5-8문장 정도로, 사주 구조를 구체적으로 언급하며 답변해주세요."""
+구체적인 생활 상황 예시를 자연스럽게 녹이면서, 사주 구조를 근거로 설명해주세요. 리스트, 번호, 불릿, 표, 별점은 절대 사용하지 마세요. 2인칭 대화체로, 실천 가능한 조언도 포함해 200자 이상의 문단으로 답변해주세요."""
 
     try:
         response = openai.chat.completions.create(
