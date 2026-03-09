@@ -70,12 +70,12 @@
 
     <script>
         // Core calculation functions (extracted from index.html for testing)
-        function calculateFreightDistribution(items, totalFreight, marginRate) {
-            let totalCost = 0;
+        function calculateEqualDistribution(items, totalFreight, marginRate) {
+            let totalCostKRW = 0;
             let totalQuantity = 0;
             
             items.forEach(item => {
-                totalCost += item.costKRW;
+                totalCostKRW += item.costKRW;
                 totalQuantity += item.quantity;
             });
             
@@ -83,33 +83,78 @@
             const equalFreightPerUnit = totalQuantity > 0 ? totalFreight / totalQuantity : 0;
             
             const results = items.map(p => {
-                const unitCost = p.costKRW / p.quantity;
-                const sellingPricePerUnit = unitCost / (1 - marginRate / 100) + equalFreightPerUnit;
+                const unitCostKRW = p.costKRW / p.quantity;
+                const sellingPricePerUnit = unitCostKRW / (1 - marginRate / 100) + equalFreightPerUnit;
                 const totalSellingPrice = sellingPricePerUnit * p.quantity;
-                
-                // 판매이익단가 = 판매단가 - 구입단가 - 배분운임단가
-                const profitPerUnit = sellingPricePerUnit - unitCost - equalFreightPerUnit;
-                
-                const actualMargin = ((sellingPricePerUnit - equalFreightPerUnit - unitCost) / (sellingPricePerUnit - equalFreightPerUnit)) * 100;
+                const profitPerUnit = sellingPricePerUnit - unitCostKRW - equalFreightPerUnit;
+                const totalProfit = profitPerUnit * p.quantity;
+                const actualMargin = ((sellingPricePerUnit - equalFreightPerUnit - unitCostKRW) / (sellingPricePerUnit - equalFreightPerUnit)) * 100;
                 
                 return {
                     name: p.name,
-                    unitCost: unitCost,
+                    unitCostKRW,
                     quantity: p.quantity,
                     freightPerUnit: equalFreightPerUnit,
-                    unitSellingPrice: sellingPricePerUnit,
-                    profitPerUnit: profitPerUnit,
-                    totalSellingPrice: totalSellingPrice,
-                    actualMargin: actualMargin
+                    sellingPricePerUnit,
+                    profitPerUnit,
+                    totalProfit,
+                    totalSellingPrice,
+                    actualMargin
                 };
             });
             
-            return {
-                results,
-                totalCost,
-                totalQuantity,
-                equalFreightPerUnit
-            };
+            return { results, totalCostKRW, totalQuantity, equalFreightPerUnit };
+        }
+
+        // Backward-compatible alias used by older tests
+        function calculateFreightDistribution(items, totalFreight, marginRate) {
+            const r = calculateEqualDistribution(items, totalFreight, marginRate);
+            // Remap field names to match old shape so existing tests still pass
+            r.results = r.results.map(item => ({
+                ...item,
+                unitCost: item.unitCostKRW,
+                unitSellingPrice: item.sellingPricePerUnit
+            }));
+            r.totalCost = r.totalCostKRW;
+            return r;
+        }
+
+        function calculateProportionalDistribution(items, totalFreight, marginRate) {
+            let totalCostKRW = 0;
+            let totalQuantity = 0;
+            
+            items.forEach(item => {
+                totalCostKRW += item.costKRW;
+                totalQuantity += item.quantity;
+            });
+
+            if (totalCostKRW === 0) return null; // graceful fallback
+
+            const results = items.map(p => {
+                const unitCostKRW = p.costKRW / p.quantity;
+                // proportional freight based on cost ratio
+                const proportionalFreightTotal = totalFreight * (p.costKRW / totalCostKRW);
+                const freightPerUnit = proportionalFreightTotal / p.quantity;
+                const sellingPricePerUnit = unitCostKRW / (1 - marginRate / 100) + freightPerUnit;
+                const totalSellingPrice = sellingPricePerUnit * p.quantity;
+                const profitPerUnit = sellingPricePerUnit - unitCostKRW - freightPerUnit;
+                const totalProfit = profitPerUnit * p.quantity;
+                const actualMargin = ((sellingPricePerUnit - freightPerUnit - unitCostKRW) / (sellingPricePerUnit - freightPerUnit)) * 100;
+
+                return {
+                    name: p.name,
+                    unitCostKRW,
+                    quantity: p.quantity,
+                    freightPerUnit,
+                    sellingPricePerUnit,
+                    profitPerUnit,
+                    totalProfit,
+                    totalSellingPrice,
+                    actualMargin
+                };
+            });
+
+            return { results, totalCostKRW, totalQuantity };
         }
 
         // Test runner
@@ -295,7 +340,8 @@
             
             // Verify all margins are 25%
             result.results.forEach((r, i) => {
-                assertEqual(r.actualMargin, 25, 0.01, `제품 ${String.fromCharCode(65+i)}의 마진율 = 25%`);
+                const label = i < 26 ? String.fromCharCode(65+i) : String(i+1);
+                assertEqual(r.actualMargin, 25, 0.01, `제품 ${label}의 마진율 = 25%`);
             });
         });
 
@@ -345,6 +391,107 @@
             assertEqual(itemBTotalFreight, 90000, 0.01, "제품 B = 90,000원 (품목당 50,000원이 아님)");
             
             // This proves it's quantity-based, not item-count based
+        });
+
+        // ── 비례배분 tests ──────────────────────────────────────────────
+
+        // Test 8: 비례배분 - basic two items
+        runTest("테스트 8: 비례배분 - 두 품목 원가 기준 배분", () => {
+            const items = [
+                { name: "제품 A", costKRW: 1000000, quantity: 2 },
+                { name: "제품 B", costKRW: 1500000, quantity: 3 }
+            ];
+            const totalFreight = 100000;
+            const marginRate = 20;
+
+            const result = calculateProportionalDistribution(items, totalFreight, marginRate);
+
+            // totalCostKRW = 1000000 + 1500000 = 2500000
+            assertEqual(result.totalCostKRW, 2500000, 0.01, "전체 원가합 = 2,500,000원");
+
+            // A: proportional freight = 100000 * (1000000/2500000) = 40000
+            // freightPerUnit A = 40000 / 2 = 20000
+            const freightTotalA = result.results[0].freightPerUnit * result.results[0].quantity;
+            assertEqual(freightTotalA, 40000, 0.01, "제품 A 배분운임(총액) = 40,000원");
+
+            // B: proportional freight = 100000 * (1500000/2500000) = 60000
+            // freightPerUnit B = 60000 / 3 = 20000
+            const freightTotalB = result.results[1].freightPerUnit * result.results[1].quantity;
+            assertEqual(freightTotalB, 60000, 0.01, "제품 B 배분운임(총액) = 60,000원");
+
+            // Total allocated freight must equal total freight
+            const totalAllocated = freightTotalA + freightTotalB;
+            assertEqual(totalAllocated, 100000, 0.01, "배분운임 합계 = 총운임 100,000원");
+        });
+
+        // Test 9: 비례배분 - 판매가 계산 (NaN 없음 검증)
+        runTest("테스트 9: 비례배분 - 판매가/이익 NaN 없음 검증", () => {
+            const items = [
+                { name: "제품 A", costKRW: 500000, quantity: 1 },
+                { name: "제품 B", costKRW: 800000, quantity: 4 }
+            ];
+            const totalFreight = 130000;
+            const marginRate = 20;
+
+            const result = calculateProportionalDistribution(items, totalFreight, marginRate);
+
+            result.results.forEach((r, i) => {
+                const label = i < 26 ? `제품 ${String.fromCharCode(65+i)}` : `제품 ${i+1}`;
+                assertEqual(isFinite(r.sellingPricePerUnit) ? 1 : 0, 1, 0, `${label} 판매단가 NaN 없음`);
+                assertEqual(isFinite(r.profitPerUnit) ? 1 : 0, 1, 0, `${label} 판매이익단가 NaN 없음`);
+                assertEqual(isFinite(r.totalProfit) ? 1 : 0, 1, 0, `${label} 총판매이익 NaN 없음`);
+                assertEqual(isFinite(r.totalSellingPrice) ? 1 : 0, 1, 0, `${label} 총판매가 NaN 없음`);
+                assertEqual(isFinite(r.actualMargin) ? 1 : 0, 1, 0, `${label} 마진율 NaN 없음`);
+            });
+        });
+
+        // Test 10: 비례배분 - 단가가 같으면 균등배분과 동일한 결과
+        runTest("테스트 10: 비례배분 - 모든 품목 구입단가(단위) 동일 → 균등배분과 동일", () => {
+            // When unit costs are equal (cost/qty is same for all items), proportional distribution
+            // based on total cost becomes proportional to quantity, which is identical to equal distribution.
+            // Math: freightPerUnit(prop) = totalFreight * (unitCost*qty / totalCost) / qty
+            //                           = totalFreight * unitCost / totalCost
+            //                           = totalFreight * unitCost / (unitCost * totalQty)   [all unit costs equal]
+            //                           = totalFreight / totalQty  = freightPerUnit(equal)
+            const items = [
+                { name: "제품 A", costKRW: 200000, quantity: 2 }, // unit cost = 100000
+                { name: "제품 B", costKRW: 300000, quantity: 3 }  // unit cost = 100000
+            ];
+            const totalFreight = 100000;
+            const marginRate = 20;
+
+            const eqResult = calculateEqualDistribution(items, totalFreight, marginRate);
+            const propResult = calculateProportionalDistribution(items, totalFreight, marginRate);
+
+            // When all unit costs are equal, proportional and equal distributions give identical freight per unit
+            assertEqual(eqResult.equalFreightPerUnit, propResult.results[0].freightPerUnit, 0.01,
+                "단가 동일 시 균등/비례 배분 운임단가 일치 (제품 A)");
+            assertEqual(eqResult.equalFreightPerUnit, propResult.results[1].freightPerUnit, 0.01,
+                "단가 동일 시 균등/비례 배분 운임단가 일치 (제품 B)");
+        });
+
+        // Test 11: 비례배분 - 전체 원가합 0 → graceful fallback (null 반환)
+        runTest("테스트 11: 비례배분 - 원가합 0 → null 반환 (graceful fallback)", () => {
+            const items = [
+                { name: "제품 A", costKRW: 0, quantity: 1 }
+            ];
+            const result = calculateProportionalDistribution(items, 100000, 20);
+            assertEqual(result === null ? 1 : 0, 1, 0, "원가합 0 시 null 반환");
+        });
+
+        // Test 12: 비례배분 - 배분운임 합계 검증 (오차 최소화)
+        runTest("테스트 12: 비례배분 - 비율 배분 후 합계가 총운임과 일치", () => {
+            const items = [
+                { name: "제품 A", costKRW: 1000000, quantity: 1 },
+                { name: "제품 B", costKRW: 2000000, quantity: 5 },
+                { name: "제품 C", costKRW: 500000, quantity: 10 }
+            ];
+            const totalFreight = 160000;
+            const marginRate = 25;
+
+            const result = calculateProportionalDistribution(items, totalFreight, marginRate);
+            const totalAllocated = result.results.reduce((sum, r) => sum + r.freightPerUnit * r.quantity, 0);
+            assertEqual(totalAllocated, totalFreight, 1, "비례배분 합계 = 총운임 (±1원 이내)");
         });
 
         // Display results
