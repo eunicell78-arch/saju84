@@ -235,22 +235,31 @@
     <div class="container">
         <h1>판매가 계산기</h1>
         <div class="formula">
-            <strong>운임 균등배분 공식:</strong><br>
-            ① 배분운임단가 = 총 운임 ÷ 총수량<br>
-            ② 각 품목 판매단가 = (구입단가 / (1 - 마진율)) + 배분운임단가<br>
-            ③ 판매이익단가 = 판매단가 - 구입단가 - 배분운임단가<br>
-            ④ 총 판매가 = 판매단가 × 수량<br>
+            <strong>운임 균등배분 공식 (수량 기준):</strong><br>
+            ① 구입단가(원) = 구입단가(USD) × 환율 &nbsp; ② 배분운임단가 = 총 운임 ÷ 총수량<br>
+            ③ 각 품목 판매단가 = (구입단가(원) / (1 - 마진율)) + 배분운임단가<br>
+            ④ 판매이익단가 = 판매단가 - 구입단가 - 배분운임단가 &nbsp; ⑤ 총판매이익 = 판매이익단가 × 수량<br>
             <br>
-            <strong>예시:</strong> 품목A 2개, 품목B 3개 → 총수량=5개, 총 운임 10만원<br>
-            • 배분운임단가 = 10만 ÷ 5 = 2만원<br>
-            • 품목A: 구입단가 50만원, 마진율 20% → 판매단가 = 50만/0.8 + 2만 = 64.5만원<br>
-            • 품목A 판매이익단가 = 64.5만 - 50만 - 2만 = 12.5만원
+            <strong>운임 비례배분 공식 (원가 기준):</strong><br>
+            ① 품목 원가합(원) = 구입단가(원) × 수량 &nbsp; ② 전체 원가합 = 모든 품목 원가합의 합<br>
+            ③ 품목 배분운임(총액) = 총 운임 × (품목 원가합 / 전체 원가합)<br>
+            ④ 배분운임단가 = 품목 배분운임(총액) / 수량<br>
+            ⑤ 판매단가 = (구입단가(원) / (1 - 마진율)) + 배분운임단가<br>
+            <br>
+            <strong>예시 (환율 1,300원/USD):</strong> 품목A 2개($500), 품목B 3개($800), 총운임 100,000원<br>
+            • 균등배분: 배분운임단가 = 10만 ÷ 5 = 2만원 (수량 5개)<br>
+            • 비례배분: A원가합=130만, B원가합=312만 → A배분운임 = 10만×(130/442) ≈ 29,412원
         </div>
         
         <div class="input-section">
             <div class="input-group">
                 <label for="totalFreight">총 운임 (원)</label>
                 <input type="number" id="totalFreight" placeholder="예: 100000" value="100000" min="0">
+            </div>
+
+            <div class="input-group">
+                <label for="exchangeRate">환율 (원/USD)</label>
+                <input type="number" id="exchangeRate" placeholder="예: 1300" value="1300" min="1">
             </div>
             
             <div class="input-group">
@@ -267,8 +276,8 @@
                             <input type="text" class="item-name" placeholder="예: 제품 A" value="제품 A">
                         </div>
                         <div class="input-group">
-                            <label>구입단가 (원)</label>
-                            <input type="number" class="item-cost" placeholder="예: 1000000" value="1000000" min="0">
+                            <label>구입단가 (USD)</label>
+                            <input type="number" class="item-cost" placeholder="예: 1000" value="1000" min="0">
                         </div>
                         <div class="input-group">
                             <label>수량</label>
@@ -284,7 +293,7 @@
         <button class="btn-calculate" onclick="calculate()">계산하기</button>
         
         <div class="results" id="results">
-            <h2 style="margin-bottom: 15px; color: #333;">계산 결과</h2>
+            <h2 style="margin-bottom: 15px; color: #333;">운임 균등배분 시 판매가</h2>
             <table class="results-table">
                 <thead>
                     <tr>
@@ -294,13 +303,39 @@
                         <th>배분운임단가 (원)</th>
                         <th>판매단가 (원)</th>
                         <th>판매이익단가 (원)</th>
+                        <th>총판매이익 (원)</th>
                         <th>총 판매가 (원)</th>
                         <th>실제 마진율 (%)</th>
                     </tr>
                 </thead>
-                <tbody id="resultsBody">
+                <tbody id="equalResultsBody">
                 </tbody>
             </table>
+
+            <div id="proportionalSection" style="display:none;">
+                <h2 style="margin-top: 30px; margin-bottom: 15px; color: #333;">운임 비례배분 시 판매가</h2>
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>품목명</th>
+                            <th>구입단가 (원)</th>
+                            <th>수량</th>
+                            <th>배분운임단가 (원)</th>
+                            <th>판매단가 (원)</th>
+                            <th>판매이익단가 (원)</th>
+                            <th>총판매이익 (원)</th>
+                            <th>총 판매가 (원)</th>
+                            <th>실제 마진율 (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="propResultsBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="proportionalFallback" style="display:none; margin-top:20px; padding:12px; background:#fff3cd; border-left:4px solid #ffc107; border-radius:5px; color:#856404;">
+                ⚠️ 전체 원가합이 0이므로 비례배분을 계산할 수 없습니다. 구입단가와 수량을 입력해주세요.
+            </div>
             
             <div class="margin-verification" id="marginVerification">
             </div>
@@ -330,8 +365,8 @@
                     <input type="text" class="item-name" placeholder="예: 제품 ${itemLabel}" value="제품 ${itemLabel}">
                 </div>
                 <div class="input-group">
-                    <label>구입단가 (원)</label>
-                    <input type="number" class="item-cost" placeholder="예: 1000000" value="0" min="0">
+                    <label>구입단가 (USD)</label>
+                    <input type="number" class="item-cost" placeholder="예: 1000" value="0" min="0">
                 </div>
                 <div class="input-group">
                     <label>수량</label>
@@ -365,8 +400,9 @@
         }
         
         function calculate() {
-            // Get inputs
+            // Get inputs — always parse as numbers to prevent NaN
             const totalFreight = parseFloat(document.getElementById('totalFreight').value) || 0;
+            const exchangeRate = parseFloat(document.getElementById('exchangeRate').value) || 1300;
             const marginRate = parseFloat(document.getElementById('marginRate').value) || 0;
             
             // Validate margin rate
@@ -378,138 +414,202 @@
             // Get items
             const itemRows = document.querySelectorAll('.item-row');
             const items = [];
-            let totalCost = 0;
-            let totalQuantity = 0; // 총수량 (전체 품목의 수량 합계)
+            let totalCostKRW = 0;
+            let totalQuantity = 0;
             
             itemRows.forEach(row => {
                 const name = row.querySelector('.item-name').value || '품목';
-                const costKRW = parseFloat(row.querySelector('.item-cost').value) || 0; // 총 원가 (Total cost for this product line)
+                const costUSD = parseFloat(row.querySelector('.item-cost').value) || 0;
+                const costKRW = costUSD * exchangeRate; // convert USD → KRW
                 const quantity = parseFloat(row.querySelector('.item-quantity').value) || 0;
                 
                 if (costKRW > 0 && quantity > 0) {
-                    items.push({ name, costKRW, quantity });
-                    totalCost += costKRW;  // Sum of total costs
-                    totalQuantity += quantity; // 수량 기반 합산 (품목 개수가 아닌 실제 수량 합계)
+                    items.push({ name, costUSD, costKRW, quantity });
+                    totalCostKRW += costKRW;
+                    totalQuantity += quantity;
                 }
             });
             
-            if (items.length === 0 || totalCost === 0 || totalQuantity === 0) {
+            if (items.length === 0 || totalCostKRW === 0 || totalQuantity === 0) {
                 alert('최소 1개 이상의 품목과 원가, 수량을 입력해주세요.');
                 return;
             }
             
-            // 수량 기반 운임 균등배분 (Quantity-based freight distribution)
-            // 배분운임단가 = 총 운임 ÷ 총수량 (freight per unit = total freight ÷ total quantity)
-            // ⚠️ 중요: 품목 개수(items.length)가 아닌 총수량(totalQuantity) 기준
-            const equalFreightPerUnit = totalFreight / totalQuantity; // 배분운임단가
+            // ── 균등배분: 수량 기준 (freight per unit = total freight ÷ total quantity)
+            const equalFreightPerUnit = totalFreight / totalQuantity;
             
-            const results = items.map(p => {
-                const unitCost = p.costKRW / p.quantity; // 구입단가 (총 원가 ÷ 수량)
-                // 판매단가 = (구입단가 / (1 - 마진율)) + 배분운임단가
-                const sellingPricePerUnit = unitCost / (1 - marginRate / 100) + equalFreightPerUnit; // 1개당 판매가
-                const totalSellingPrice = sellingPricePerUnit * p.quantity; // 총 판매가
-                
-                // 판매이익단가 = 판매단가 - 구입단가 - 배분운임단가
-                const profitPerUnit = sellingPricePerUnit - unitCost - equalFreightPerUnit;
-                
-                // 실제 마진율 검증: ((판매단가 - 배분운임단가 - 구입단가) / (판매단가 - 배분운임단가)) * 100
-                const actualMargin = ((sellingPricePerUnit - equalFreightPerUnit - unitCost) / (sellingPricePerUnit - equalFreightPerUnit)) * 100;
-                
+            const equalResults = items.map(p => {
+                const unitCostKRW = p.costKRW / p.quantity;
+                const sellingPricePerUnit = unitCostKRW / (1 - marginRate / 100) + equalFreightPerUnit;
+                const totalSellingPrice = sellingPricePerUnit * p.quantity;
+                const profitPerUnit = sellingPricePerUnit - unitCostKRW - equalFreightPerUnit;
+                const totalProfit = profitPerUnit * p.quantity;
+                const actualMargin = ((sellingPricePerUnit - equalFreightPerUnit - unitCostKRW) / (sellingPricePerUnit - equalFreightPerUnit)) * 100;
                 return {
                     name: p.name,
-                    unitCost: unitCost,
+                    unitCostKRW,
                     quantity: p.quantity,
                     freightPerUnit: equalFreightPerUnit,
-                    unitSellingPrice: sellingPricePerUnit,
-                    profitPerUnit: profitPerUnit,
-                    totalSellingPrice: totalSellingPrice,
-                    actualMargin: actualMargin
+                    sellingPricePerUnit,
+                    profitPerUnit,
+                    totalProfit,
+                    totalSellingPrice,
+                    actualMargin
                 };
             });
             
+            // ── 비례배분: 원가 기준 (each item's freight ∝ its total cost / total cost of all items)
+            let propResults = null;
+            if (totalCostKRW > 0) {
+                propResults = items.map(p => {
+                    const unitCostKRW = p.costKRW / p.quantity;
+                    // p.costKRW is the total cost for this item line (= unit cost × quantity)
+                    const proportionalFreightTotal = totalFreight * (p.costKRW / totalCostKRW);
+                    const freightPerUnit = proportionalFreightTotal / p.quantity;
+                    const sellingPricePerUnit = unitCostKRW / (1 - marginRate / 100) + freightPerUnit;
+                    const totalSellingPrice = sellingPricePerUnit * p.quantity;
+                    const profitPerUnit = sellingPricePerUnit - unitCostKRW - freightPerUnit;
+                    const totalProfit = profitPerUnit * p.quantity;
+                    const actualMargin = ((sellingPricePerUnit - freightPerUnit - unitCostKRW) / (sellingPricePerUnit - freightPerUnit)) * 100;
+                    return {
+                        name: p.name,
+                        unitCostKRW,
+                        quantity: p.quantity,
+                        freightPerUnit,
+                        sellingPricePerUnit,
+                        profitPerUnit,
+                        totalProfit,
+                        totalSellingPrice,
+                        actualMargin
+                    };
+                });
+            }
+            
             // Display results
-            displayResults(results, totalCost, totalFreight, totalQuantity, marginRate);
+            displayResults(equalResults, propResults, totalCostKRW, totalFreight, totalQuantity, marginRate, exchangeRate);
         }
         
-        function displayResults(results, totalCost, totalFreight, totalQuantity, targetMargin) {
-            const resultsBody = document.getElementById('resultsBody');
-            resultsBody.innerHTML = '';
-            
+        function buildResultRows(results, tbody) {
+            tbody.innerHTML = '';
             let totalSellingPrice = 0;
+            let totalProfit = 0;
             let totalAllocatedFreight = 0;
-            const equalFreightPerUnit = totalFreight / totalQuantity;
-            
-            // Add item rows
+            let totalCostKRW = 0;
+            let totalQuantity = 0;
+
             results.forEach(result => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${result.name}</td>
-                    <td class="number">${formatNumber(result.unitCost)}</td>
+                    <td class="number">${formatNumber(result.unitCostKRW)}</td>
                     <td class="number">${result.quantity}</td>
                     <td class="number">${formatNumber(result.freightPerUnit)}</td>
-                    <td class="number">${formatNumber(result.unitSellingPrice)}</td>
+                    <td class="number">${formatNumber(result.sellingPricePerUnit)}</td>
                     <td class="number">${formatNumber(result.profitPerUnit)}</td>
+                    <td class="number">${formatNumber(result.totalProfit)}</td>
                     <td class="number">${formatNumber(result.totalSellingPrice)}</td>
-                    <td class="number">${result.actualMargin.toFixed(2)}</td>
+                    <td class="number">${isFinite(result.actualMargin) ? result.actualMargin.toFixed(2) : '-'}</td>
                 `;
-                resultsBody.appendChild(row);
+                tbody.appendChild(row);
                 totalSellingPrice += result.totalSellingPrice;
+                totalProfit += result.totalProfit;
                 totalAllocatedFreight += result.freightPerUnit * result.quantity;
+                totalCostKRW += result.unitCostKRW * result.quantity;
+                totalQuantity += result.quantity;
             });
             
-            // Add total row
+            // Total row
             const totalRow = document.createElement('tr');
             totalRow.className = 'total-row';
             totalRow.innerHTML = `
                 <td>합계</td>
-                <td class="number">${formatNumber(totalCost)}</td>
+                <td class="number">${formatNumber(totalCostKRW)}</td>
                 <td class="number">${totalQuantity}</td>
                 <td>-</td>
                 <td>-</td>
                 <td>-</td>
+                <td class="number">${formatNumber(totalProfit)}</td>
                 <td class="number">${formatNumber(totalSellingPrice)}</td>
                 <td>-</td>
             `;
-            resultsBody.appendChild(totalRow);
+            tbody.appendChild(totalRow);
             
-            // Margin verification
-            const marginVerification = document.getElementById('marginVerification');
-            const allMarginCorrect = results.every(r => Math.abs(r.actualMargin - targetMargin) < 0.01);
-            
-            // Verify freight allocation matches expected formula (allow 1 won tolerance for rounding)
+            return { totalSellingPrice, totalProfit, totalAllocatedFreight };
+        }
+
+        function displayResults(equalResults, propResults, totalCostKRW, totalFreight, totalQuantity, targetMargin, exchangeRate) {
+            // ── 균등배분 table
+            const equalTotals = buildResultRows(equalResults, document.getElementById('equalResultsBody'));
+
+            // ── 비례배분 table
+            const propSection = document.getElementById('proportionalSection');
+            const propFallback = document.getElementById('proportionalFallback');
+
+            if (propResults) {
+                const propTotals = buildResultRows(propResults, document.getElementById('propResultsBody'));
+                propSection.style.display = 'block';
+                propFallback.style.display = 'none';
+
+                // Proportional distribution verification
+                const TOLERANCE = 1;
+                const propFreightOk = Math.abs(propTotals.totalAllocatedFreight - totalFreight) < TOLERANCE;
+                
+                // Store for verification block
+                propSection.dataset.freightOk = propFreightOk;
+                propSection.dataset.allocatedFreight = propTotals.totalAllocatedFreight;
+            } else {
+                propSection.style.display = 'none';
+                propFallback.style.display = 'block';
+            }
+
+            // ── Margin / freight verification
+            const MARGIN_TOLERANCE = 0.01;
             const FREIGHT_ALLOCATION_TOLERANCE = 1;
-            const freightAllocationCorrect = Math.abs(totalAllocatedFreight - totalFreight) < FREIGHT_ALLOCATION_TOLERANCE;
-            
+            const equalFreightPerUnit = totalFreight / totalQuantity;
+            const allEqualMarginCorrect = equalResults.every(r => isFinite(r.actualMargin) && Math.abs(r.actualMargin - targetMargin) < MARGIN_TOLERANCE);
+            const equalFreightOk = Math.abs(equalTotals.totalAllocatedFreight - totalFreight) < FREIGHT_ALLOCATION_TOLERANCE;
+
+            const marginVerification = document.getElementById('marginVerification');
             let verificationHTML = '<h3>마진 및 운임 배분 검증</h3>';
-            
-            if (allMarginCorrect) {
-                verificationHTML += '<div class="margin-item">✅ 모든 품목의 마진율이 정확합니다.</div>';
+
+            if (allEqualMarginCorrect) {
+                verificationHTML += '<div class="margin-item">✅ [균등배분] 모든 품목의 마진율이 정확합니다.</div>';
             } else {
-                verificationHTML += '<div class="margin-item">⚠️ 일부 품목의 마진율이 목표와 다를 수 있습니다.</div>';
+                verificationHTML += '<div class="margin-item">⚠️ [균등배분] 일부 품목의 마진율이 목표와 다를 수 있습니다.</div>';
             }
-            
-            if (freightAllocationCorrect) {
-                verificationHTML += '<div class="margin-item">✅ 운임이 수량 기준으로 정확히 균등배분되었습니다.</div>';
+
+            if (equalFreightOk) {
+                verificationHTML += '<div class="margin-item">✅ [균등배분] 운임이 수량 기준으로 정확히 균등배분되었습니다.</div>';
             } else {
-                verificationHTML += '<div class="margin-item">⚠️ 운임 배분에 오차가 있습니다.</div>';
+                verificationHTML += '<div class="margin-item">⚠️ [균등배분] 운임 배분에 오차가 있습니다.</div>';
             }
-            
+
+            if (propResults) {
+                const propFreightOk = propSection.dataset.freightOk === 'true';
+                const propAllocated = parseFloat(propSection.dataset.allocatedFreight);
+                if (propFreightOk) {
+                    verificationHTML += '<div class="margin-item">✅ [비례배분] 운임이 원가 기준으로 정확히 비례배분되었습니다.</div>';
+                } else {
+                    verificationHTML += `<div class="margin-item">⚠️ [비례배분] 운임 배분 오차: ${formatNumber(Math.abs(propAllocated - totalFreight))}원</div>`;
+                }
+            }
+
             verificationHTML += `
                 <div class="margin-item">목표 마진율: <span class="number">${targetMargin.toFixed(2)}%</span></div>
                 <div class="margin-item">총 수량: <span class="number">${totalQuantity}개</span></div>
-                <div class="margin-item">배분운임단가: <span class="number">${formatNumber(equalFreightPerUnit)}원</span></div>
-                <div class="margin-item">총 구입단가: <span class="number">${formatNumber(totalCost)}원</span></div>
-                <div class="margin-item">총 운임: <span class="number">${formatNumber(totalFreight)}원</span> (배분 합계: <span class="number">${formatNumber(totalAllocatedFreight)}원</span>)</div>
-                <div class="margin-item">총 판매가: <span class="number">${formatNumber(totalSellingPrice)}원</span></div>
+                <div class="margin-item">균등배분 운임단가: <span class="number">${formatNumber(equalFreightPerUnit)}원</span></div>
+                <div class="margin-item">전체 원가합: <span class="number">${formatNumber(totalCostKRW)}원</span></div>
+                <div class="margin-item">총 운임: <span class="number">${formatNumber(totalFreight)}원</span></div>
+                <div class="margin-item">적용 환율: <span class="number">${formatNumber(exchangeRate)}원/USD</span></div>
+                <div class="margin-item">[균등배분] 총 판매가: <span class="number">${formatNumber(equalTotals.totalSellingPrice)}원</span></div>
             `;
-            
+
+            const allOk = allEqualMarginCorrect && equalFreightOk;
             marginVerification.innerHTML = verificationHTML;
-            marginVerification.className = (allMarginCorrect && freightAllocationCorrect) ? 'margin-verification' : 'margin-verification error';
+            marginVerification.className = allOk ? 'margin-verification' : 'margin-verification error';
             
             // Show results
             document.getElementById('results').classList.add('show');
-            
-            // Scroll to results
             document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
         
