@@ -130,6 +130,7 @@ STUDENT_REQUIRED_HEADINGS = [
 def validate_student_headings(text: str) -> list[str]:
     """
     Check that all required student section headings are present in the output.
+    Matching is done as a substring search (heading prefix must appear anywhere in the text).
     Returns a list of missing heading prefixes (empty list means all present).
     """
     return [h for h in STUDENT_REQUIRED_HEADINGS if h not in text]
@@ -365,7 +366,8 @@ CRITICAL OUTPUT RULES (follow strictly — violations are not acceptable):
         
         result_text = response.choices[0].message.content
 
-        # Post-processing validation for student output: retry once if any heading is missing
+        # Post-processing validation for student output: retry once if any heading is missing.
+        # Maximum 2 attempts total (1 original + 1 retry) to avoid infinite loops.
         if is_student:
             missing = validate_student_headings(result_text)
             if missing:
@@ -374,7 +376,19 @@ CRITICAL OUTPUT RULES (follow strictly — violations are not acceptable):
 
 반드시 아래 10개 섹션 제목을 모두 포함하여 풀이 전체를 처음부터 다시 작성해주세요. 단 하나의 섹션 제목도 빠뜨리면 안 됩니다.
 
-{user_prompt}"""
+필수 포함 섹션 제목: ## 1. ## 2. ## 3. ## 4-학생. ## 5-학생. ## 6-학생. ## 7-학생. ## 8. ## 9. ## 10.
+
+{saju_data_block}
+
+---
+
+# 풀이 양식 (10개 섹션 전체 작성)
+
+아래 10개 섹션 제목을 반드시 모두 포함하여 각 섹션을 문단형으로 작성하세요. 특히 ## 7-학생. 앞으로 3년간 시험운/학업운 은 반드시 포함하세요.
+
+## 1. ## 2. ## 3. ## 4-학생. ## 5-학생. ## 6-학생. ## 7-학생. ## 8. ## 9. ## 10.
+
+리스트, 표, 번호, 불릿, 별점 사용 금지. 2인칭 대화체로, 전체 1000자 이상으로 작성하세요."""
                 retry_response = openai.chat.completions.create(
                     model="gpt-4o",
                     messages=[
@@ -382,9 +396,10 @@ CRITICAL OUTPUT RULES (follow strictly — violations are not acceptable):
                         {"role": "user", "content": retry_user_prompt}
                     ],
                     max_tokens=max_tokens,
-                    temperature=0.7
+                    temperature=0.6  # Lower temperature on retry for more deterministic compliance
                 )
                 result_text = retry_response.choices[0].message.content
+                # Note: single retry only; if headings still missing, return best-effort result
 
         return result_text
         
