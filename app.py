@@ -112,6 +112,29 @@ with st.sidebar:
         st.rerun()
 
 
+# Required section headings for student output (all 10 must appear)
+STUDENT_REQUIRED_HEADINGS = [
+    "## 1.",
+    "## 2.",
+    "## 3.",
+    "## 4-학생.",
+    "## 5-학생.",
+    "## 6-학생.",
+    "## 7-학생.",
+    "## 8.",
+    "## 9.",
+    "## 10.",
+]
+
+
+def validate_student_headings(text: str) -> list[str]:
+    """
+    Check that all required student section headings are present in the output.
+    Returns a list of missing heading prefixes (empty list means all present).
+    """
+    return [h for h in STUDENT_REQUIRED_HEADINGS if h not in text]
+
+
 def get_saju_interpretation(saju_result: dict, gender: str, occupation: str, student_grade: Optional[str] = None, marital_status: str = "기타", children_status: str = "자녀없음") -> str:
     """
     사주 용어 기반 공감형 풀이
@@ -165,10 +188,13 @@ CRITICAL OUTPUT RULES (follow strictly — violations are not acceptable):
 7. Avoid vague motivational phrases: 노력, 긍정, 열심히, 성공, 운이 좋다, 운이 나쁘다, 잘 될 것이다.
 8. Always connect Saju terms to real, observable, everyday life patterns.
 9. Total output MUST be 1000 Korean characters or more (aim for 1200–1800 characters).
-10. Language: Natural, warm Korean. Classical Saju terms are welcome but must always be explained in plain language."""
+10. Language: Natural, warm Korean. Classical Saju terms are welcome but must always be explained in plain language.
+11. MANDATORY SECTION RULE: You MUST output ALL 10 section headings exactly as given (## 1. through ## 10., including ## 4-학생. ## 5-학생. ## 6-학생. ## 7-학생.). Omitting even ONE section heading is strictly unacceptable and counts as a failed response. Every single heading must appear in the output."""
 
         user_prompt = f"""다음 사주팔자를 분석하여, 경험 많은 사주 상담사가 직접 상담하듯이 **문단형 풀이**를 작성해주세요.
 반드시 상담받는 분에게 직접 말하는 2인칭 대화체로 작성하세요. 모든 섹션 본문은 자연스러운 문단으로 작성하고, 리스트/번호/불릿/표/별점은 절대 사용하지 마세요.
+
+【절대 규칙】아래 10개 섹션 제목(## 1. ~ ## 10.)은 모두 빠짐없이, 정확히 그대로 출력해야 합니다. 단 하나의 섹션 제목이라도 누락되면 실패한 응답입니다. 특히 "## 7-학생. 앞으로 3년간 시험운/학업운"은 반드시 포함해야 합니다.
 
 {saju_data_block}
 
@@ -244,7 +270,8 @@ CRITICAL OUTPUT RULES (follow strictly — violations are not acceptable):
 모든 섹션을 문단형으로 작성하세요. 리스트, 표, 번호, 불릿, 별점 사용 금지.
 반복 레이블("사주 근거:", "구체적 재능:", "어떤 상황에서 빛나는지:" 등) 사용 금지.
 2인칭 대화체로, 공감과 위로가 담긴 따뜻한 문체로 작성하세요.
-전체 1000자 이상."""
+전체 1000자 이상.
+【재확인】위 ## 1. ~ ## 10. 의 10개 섹션 제목이 모두 출력에 포함되어야 합니다. 특히 ## 7-학생. 앞으로 3년간 시험운/학업운 은 반드시 포함하세요."""
 
         max_tokens = 4500  # Increased to 4500 to accommodate full output (10 sections for students: 6 general + 4 student-specific)
 
@@ -336,7 +363,30 @@ CRITICAL OUTPUT RULES (follow strictly — violations are not acceptable):
             temperature=0.75
         )
         
-        return response.choices[0].message.content
+        result_text = response.choices[0].message.content
+
+        # Post-processing validation for student output: retry once if any heading is missing
+        if is_student:
+            missing = validate_student_headings(result_text)
+            if missing:
+                missing_list = ", ".join(missing)
+                retry_user_prompt = f"""이전 응답에서 다음 섹션 제목이 누락되었습니다: {missing_list}
+
+반드시 아래 10개 섹션 제목을 모두 포함하여 풀이 전체를 처음부터 다시 작성해주세요. 단 하나의 섹션 제목도 빠뜨리면 안 됩니다.
+
+{user_prompt}"""
+                retry_response = openai.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": retry_user_prompt}
+                    ],
+                    max_tokens=max_tokens,
+                    temperature=0.7
+                )
+                result_text = retry_response.choices[0].message.content
+
+        return result_text
         
     except Exception as e:
         return f"풀이 생성 중 오류가 발생했습니다: {str(e)}"
