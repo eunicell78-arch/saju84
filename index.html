@@ -168,10 +168,16 @@
             display: block;
         }
         
+        .table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-top: 15px;
+        }
+        
         .results-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 15px;
+            min-width: 800px;
         }
         
         .results-table th,
@@ -229,6 +235,34 @@
             font-family: 'Consolas', 'Monaco', monospace;
             font-weight: 600;
         }
+        
+        /* Mobile responsive styles */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .item-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .btn-remove {
+                width: 100%;
+            }
+            
+            .formula {
+                font-size: 13px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -285,22 +319,24 @@
         
         <div class="results" id="results">
             <h2 style="margin-bottom: 15px; color: #333;">계산 결과</h2>
-            <table class="results-table">
-                <thead>
-                    <tr>
-                        <th>품목명</th>
-                        <th>구입단가 (원)</th>
-                        <th>수량</th>
-                        <th>배분운임단가 (원)</th>
-                        <th>판매단가 (원)</th>
-                        <th>판매이익단가 (원)</th>
-                        <th>총 판매가 (원)</th>
-                        <th>실제 마진율 (%)</th>
-                    </tr>
-                </thead>
-                <tbody id="resultsBody">
-                </tbody>
-            </table>
+            <div class="table-wrapper">
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>품목명</th>
+                            <th>구입단가 (원)</th>
+                            <th>수량</th>
+                            <th>배분운임단가 (원)</th>
+                            <th>판매단가 (원)</th>
+                            <th>판매이익단가 (원)</th>
+                            <th>총 판매가 (원)</th>
+                            <th>실제 마진율 (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody">
+                    </tbody>
+                </table>
+            </div>
             
             <div class="margin-verification" id="marginVerification">
             </div>
